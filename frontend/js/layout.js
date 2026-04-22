@@ -18,6 +18,7 @@
           <a class="nav-link" href="/products.html?category=beds" data-nav="beds">Beds</a>
           <a class="nav-link" href="/products.html?category=sofas" data-nav="sofas">Sofas</a>
           <a class="nav-link" href="/products.html?category=tables" data-nav="tables">Tables</a>
+          <a class="nav-link" href="/track.html" data-nav="track">Track Order</a>
           <a class="nav-link" href="/contact.html" data-nav="contact">Contact</a>
         </div>
 
@@ -36,6 +37,7 @@
         <a class="nav-link" href="/products.html?category=beds">Beds</a>
         <a class="nav-link" href="/products.html?category=sofas">Sofas</a>
         <a class="nav-link" href="/products.html?category=tables">Tables</a>
+        <a class="nav-link" href="/track.html">Track Order</a>
         <a class="nav-link" href="/contact.html">Contact</a>
       </div>
     </nav>
@@ -66,6 +68,7 @@
             <h5>Company</h5>
             <ul class="list-unstyled">
               <li><a href="/contact.html">Contact</a></li>
+              <li><a href="/track.html">Track Order</a></li>
               <li><a href="/contact.html">Bulk &amp; Trade</a></li>
               <li><a href="/contact.html">Custom Orders</a></li>
             </ul>

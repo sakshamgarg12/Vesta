@@ -169,9 +169,11 @@
           <!-- Step 3: Payment -->
           <div class="step" data-step="3" style="display:none">
             <h3 class="mb-1">Payment Method</h3>
-            <p class="text-muted-soft small mb-4">This is a demo store — no real payment is captured.</p>
+            <p class="text-muted-soft small mb-4">
+              This is a <strong>demo store</strong> — details are validated but no real money is captured and your card / UPI details are never stored.
+            </p>
 
-            <label class="pay-option selected">
+            <label class="pay-option selected" data-pay-opt="upi">
               <input type="radio" name="payment" value="upi" checked />
               <div class="ico">📱</div>
               <div>
@@ -179,7 +181,7 @@
                 <div class="small text-muted-soft">Pay via any UPI app (Google Pay, PhonePe, Paytm).</div>
               </div>
             </label>
-            <label class="pay-option">
+            <label class="pay-option" data-pay-opt="card">
               <input type="radio" name="payment" value="card" />
               <div class="ico">💳</div>
               <div>
@@ -187,7 +189,7 @@
                 <div class="small text-muted-soft">Visa, Mastercard, RuPay, American Express.</div>
               </div>
             </label>
-            <label class="pay-option">
+            <label class="pay-option" data-pay-opt="netbanking">
               <input type="radio" name="payment" value="netbanking" />
               <div class="ico">🏦</div>
               <div>
@@ -195,7 +197,7 @@
                 <div class="small text-muted-soft">All major Indian banks supported.</div>
               </div>
             </label>
-            <label class="pay-option">
+            <label class="pay-option" data-pay-opt="cod">
               <input type="radio" name="payment" value="cod" />
               <div class="ico">💰</div>
               <div>
@@ -203,6 +205,107 @@
                 <div class="small text-muted-soft">Pay in cash or UPI at the time of delivery.</div>
               </div>
             </label>
+
+            <!-- ========== UPI details ========== -->
+            <div class="pay-details" data-pay-panel="upi">
+              <h5>📱 Enter your UPI ID</h5>
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="form-label">UPI ID (VPA)</label>
+                  <div class="input-group">
+                    <input class="form-control" type="text" name="upi_id"
+                           placeholder="yourname@okhdfcbank" autocomplete="off"
+                           spellcheck="false" autocapitalize="none" />
+                    <button class="btn btn-outline-forest" type="button" data-pay-verify="upi">Verify</button>
+                  </div>
+                  <div class="pay-hint">
+                    Accepted handles: <code>@okhdfcbank</code>, <code>@okaxis</code>, <code>@oksbi</code>, <code>@okicici</code>,
+                    <code>@ybl</code> (PhonePe), <code>@paytm</code>, <code>@ibl</code>, <code>@upi</code> etc.
+                  </div>
+                  <div class="mt-2" id="upiVerifyStatus"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========== Card details ========== -->
+            <div class="pay-details" data-pay-panel="card" style="display:none">
+              <h5>💳 Card details <span class="brand-badge" id="cardBrandBadge">–</span></h5>
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="form-label">Card number</label>
+                  <input class="form-control" type="text" name="card_number"
+                         inputmode="numeric" autocomplete="cc-number"
+                         placeholder="1234 5678 9012 3456" maxlength="23" />
+                  <div class="pay-hint">Visa / Mastercard / RuPay / Amex — 13 to 19 digits.</div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Expiry (MM/YY)</label>
+                  <input class="form-control" type="text" name="card_expiry"
+                         inputmode="numeric" autocomplete="cc-exp"
+                         placeholder="MM/YY" maxlength="5" />
+                </div>
+
+                <div class="col-md-8">
+                  <label class="form-label">Name on card</label>
+                  <input class="form-control" type="text" name="card_name"
+                         autocomplete="cc-name" placeholder="As printed on the card" maxlength="60" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">CVV</label>
+                  <input class="form-control" type="password" name="card_cvv"
+                         inputmode="numeric" autocomplete="cc-csc"
+                         placeholder="•••" maxlength="4" />
+                  <div class="pay-hint">3 digits (Amex: 4).</div>
+                </div>
+
+                <div class="col-12">
+                  <button class="btn btn-outline-forest" type="button" data-pay-verify="card">Verify Card</button>
+                  <span class="ms-2" id="cardVerifyStatus"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========== Net Banking details ========== -->
+            <div class="pay-details" data-pay-panel="netbanking" style="display:none">
+              <h5>🏦 Choose your bank</h5>
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="form-label">Bank</label>
+                  <select class="form-select" name="bank">
+                    <option value="">— Select a bank —</option>
+                    <option>HDFC Bank</option>
+                    <option>ICICI Bank</option>
+                    <option>State Bank of India</option>
+                    <option>Axis Bank</option>
+                    <option>Kotak Mahindra Bank</option>
+                    <option>Punjab National Bank</option>
+                    <option>Bank of Baroda</option>
+                    <option>IDFC FIRST Bank</option>
+                    <option>Yes Bank</option>
+                    <option>IndusInd Bank</option>
+                    <option>Canara Bank</option>
+                    <option>Union Bank of India</option>
+                    <option>Federal Bank</option>
+                    <option>RBL Bank</option>
+                    <option>Other</option>
+                  </select>
+                  <div class="pay-hint">You'll be redirected to your bank's secure login after placing the order.</div>
+                </div>
+                <div class="col-md-8" id="bankOtherWrap" style="display:none">
+                  <label class="form-label">Bank name</label>
+                  <input class="form-control" type="text" name="bank_other" placeholder="Enter bank name" maxlength="80" />
+                </div>
+              </div>
+            </div>
+
+            <!-- ========== Cash on Delivery ========== -->
+            <div class="pay-details" data-pay-panel="cod" style="display:none">
+              <h5>💰 Cash on Delivery</h5>
+              <div class="pay-cod-note">
+                Pay <strong>in cash or via UPI</strong> at the time of delivery. Please keep exact change ready.
+                Our delivery partner will collect the amount only after you've inspected the furniture.
+              </div>
+            </div>
 
             <div class="d-flex justify-content-between mt-4">
               <button class="btn btn-ghost" data-prev>← Back</button>
@@ -247,9 +350,9 @@
 <div data-fx-footer></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/api.js?v=2"></script>
+<script src="/js/api.js?v=3"></script>
 <script src="/js/cart.js?v=2"></script>
-<script src="/js/layout.js?v=2"></script>
-<script src="/js/checkout.js?v=3"></script>
+<script src="/js/layout.js?v=3"></script>
+<script src="/js/checkout.js?v=4"></script>
 </body>
 </html>

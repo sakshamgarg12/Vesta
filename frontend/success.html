@@ -26,16 +26,22 @@
       </p>
     </div>
 
+    <!-- Live status snapshot (progress bar + timeline). -->
+    <div id="statusSnapshot" class="mt-4 d-print-none" style="display:none"></div>
+
     <div class="receipt mt-4" id="receipt">
       <div class="loader"></div>
     </div>
 
     <div class="text-center mt-4 d-print-none">
+      <a class="btn btn-forest me-2" id="btn-track-order" href="#" target="_self">
+        🔎 Track Order
+      </a>
       <a class="btn me-2" id="btn-wa-confirm" href="#" target="_blank" rel="noopener"
          style="background:#25D366;color:#fff;display:none;">
         💬 Confirm Address on WhatsApp
       </a>
-      <a class="btn btn-forest me-2" id="btn-download-invoice" href="#" target="_blank" rel="noopener">
+      <a class="btn btn-outline-forest me-2" id="btn-download-invoice" href="#" target="_blank" rel="noopener">
         Download Invoice (PDF)
       </a>
       <button class="btn btn-outline-forest me-2" onclick="window.print()">Print Receipt</button>
@@ -52,9 +58,9 @@
 <div data-fx-footer></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/api.js?v=2"></script>
+<script src="/js/api.js?v=3"></script>
 <script src="/js/cart.js?v=2"></script>
-<script src="/js/layout.js?v=2"></script>
-<script src="/js/success.js?v=2"></script>
+<script src="/js/layout.js?v=3"></script>
+<script src="/js/success.js?v=5"></script>
 </body>
 </html>

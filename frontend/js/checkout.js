@@ -7,6 +7,9 @@
     latitude: null, longitude: null, geo_accuracy: null,
     delivery_date: '', delivery_slot: 'Any time (9am - 8pm)',
     payment: 'upi',
+    // Sanitized payment details — NEVER contains full PAN / CVV. Populated in
+    // validateStep(3) before the review step and submission.
+    payment_details: null,
     notes: '',
   };
   let currentStep = 1;
@@ -184,9 +187,18 @@
       return true;
     }
     if (n === 3) {
+      clearStepErrors();
       const sel = document.querySelector('input[name="payment"]:checked');
       if (!sel) return false;
       form.payment = sel.value;
+      const result = validatePaymentMethod(form.payment);
+      if (!result.ok) {
+        renderErrorSummary(3, result.errors || [{ key: '_payment', message: result.message }]);
+        scrollToFirstInvalid();
+        return false;
+      }
+      form.payment_details = result.details;
+      renderErrorSummary(3, []);
       return true;
     }
     return true;
@@ -392,6 +404,354 @@
     });
   }
 
+  // ====================================================================
+  // Payment — per-method validation, formatting, brand detection, verify
+  // ====================================================================
+  //
+  // Security: the card number and CVV live in the DOM only while the user is
+  // on the payment step. We NEVER put them into `form` or the checkout
+  // payload. Only a sanitized summary — last-4 digits, detected brand and the
+  // cardholder name — is sent to the server.
+
+  /** Detect card brand from a raw (digits-only) card number. */
+  function detectCardBrand(digits) {
+    const n = String(digits || '').replace(/\D/g, '');
+    if (!n) return { key: '', label: '–' };
+    // Amex: 34 or 37 (15 digits)
+    if (/^3[47]/.test(n))        return { key: 'amex',       label: 'AMEX' };
+    // Visa: starts with 4
+    if (/^4/.test(n))            return { key: 'visa',       label: 'VISA' };
+    // Mastercard: 51-55, or 2221-2720
+    if (/^5[1-5]/.test(n))       return { key: 'mastercard', label: 'MASTERCARD' };
+    if (/^2(2[2-9]\d|[3-6]\d{2}|7[01]\d|720)/.test(n)) return { key: 'mastercard', label: 'MASTERCARD' };
+    // RuPay: 60, 65, 81, 82 (and some 508xxx bins)
+    if (/^(60|65|81|82)/.test(n) || /^508/.test(n)) return { key: 'rupay', label: 'RUPAY' };
+    // Discover: 6011, 65, 644-649
+    if (/^(6011|65|64[4-9])/.test(n)) return { key: 'discover', label: 'DISCOVER' };
+    // JCB: 3528-3589
+    if (/^35(2[89]|[3-8]\d)/.test(n)) return { key: 'jcb',    label: 'JCB' };
+    return { key: '', label: '–' };
+  }
+
+  /** Luhn algorithm — validates card number checksum. */
+  function luhnValid(digits) {
+    const n = String(digits || '').replace(/\D/g, '');
+    if (n.length < 13 || n.length > 19) return false;
+    let sum = 0, alt = false;
+    for (let i = n.length - 1; i >= 0; i--) {
+      let d = parseInt(n[i], 10);
+      if (alt) { d *= 2; if (d > 9) d -= 9; }
+      sum += d;
+      alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+
+  /** Format a raw card number with spaces. Amex → 4-6-5, others → 4-4-4-4(-3). */
+  function formatCardNumber(raw) {
+    const n = String(raw || '').replace(/\D/g, '').slice(0, 19);
+    const brand = detectCardBrand(n).key;
+    if (brand === 'amex') {
+      return n.replace(/^(\d{0,4})(\d{0,6})(\d{0,5}).*/, (m, a, b, c) =>
+        [a, b, c].filter(Boolean).join(' '));
+    }
+    return n.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+  }
+
+  /** Format a raw expiry into MM/YY. Accepts "0625", "6/25", "06/25", etc. */
+  function formatExpiry(raw) {
+    const n = String(raw || '').replace(/\D/g, '').slice(0, 4);
+    if (n.length < 3) return n;
+    return n.slice(0, 2) + '/' + n.slice(2);
+  }
+
+  /** Validate expiry string "MM/YY". Returns {ok, message}. */
+  function validateExpiry(str) {
+    const m = String(str || '').match(/^(\d{2})\/(\d{2})$/);
+    if (!m) return { ok: false, message: 'Enter expiry as MM/YY (e.g. 06/28).' };
+    const mm = parseInt(m[1], 10);
+    const yy = parseInt(m[2], 10);
+    if (mm < 1 || mm > 12) return { ok: false, message: 'Month must be between 01 and 12.' };
+    const now = new Date();
+    const curYear = now.getFullYear() % 100;
+    const curMonth = now.getMonth() + 1;
+    if (yy < curYear || (yy === curYear && mm < curMonth)) {
+      return { ok: false, message: 'This card has expired — please use a different card.' };
+    }
+    if (yy > curYear + 20) return { ok: false, message: 'Expiry year seems too far in the future.' };
+    return { ok: true };
+  }
+
+  /** Validate UPI ID like "name@bankhandle". */
+  function validateUpiId(v) {
+    const s = String(v || '').trim().toLowerCase();
+    if (!s) return { ok: false, message: 'Please enter your UPI ID.' };
+    if (!s.includes('@')) return { ok: false, message: 'UPI IDs contain "@" — e.g. yourname@okhdfcbank.' };
+    const m = s.match(/^([a-z0-9._\-]{2,256})@([a-z][a-z0-9]{1,64})$/);
+    if (!m) return { ok: false, message: 'That doesn\'t look like a valid UPI ID (letters, digits, . _ - only).' };
+    return { ok: true, handle: m[2] };
+  }
+
+  /** Update card brand badge + formatted value in the card number field. */
+  function refreshCardUI() {
+    const num = document.querySelector('[name="card_number"]');
+    const badge = document.getElementById('cardBrandBadge');
+    if (!num || !badge) return;
+    const raw = num.value.replace(/\D/g, '');
+    const pretty = formatCardNumber(raw);
+    if (pretty !== num.value) {
+      const cursorEnd = num.selectionStart === num.value.length;
+      num.value = pretty;
+      if (cursorEnd) try { num.setSelectionRange(pretty.length, pretty.length); } catch (_) {}
+    }
+    const brand = detectCardBrand(raw);
+    badge.textContent = brand.label;
+    badge.className = 'brand-badge' + (brand.key ? ' ' + brand.key : '');
+  }
+
+  /** Show only the selected payment method's detail panel. */
+  function showPaymentPanel(method) {
+    document.querySelectorAll('[data-pay-panel]').forEach(p => {
+      p.style.display = p.getAttribute('data-pay-panel') === method ? '' : 'none';
+    });
+    document.querySelectorAll('.pay-option').forEach(opt => {
+      const isMatch = opt.getAttribute('data-pay-opt') === method;
+      opt.classList.toggle('selected', isMatch);
+      const input = opt.querySelector('input[type="radio"]');
+      if (input) input.checked = isMatch;
+    });
+  }
+
+  /**
+   * Validate the fields for the chosen payment method and return a sanitized
+   * `details` object (never full PAN / CVV) ready for submission.
+   */
+  function validatePaymentMethod(method) {
+    if (method === 'upi') {
+      const el = document.querySelector('[name="upi_id"]');
+      const r = validateUpiId(el?.value);
+      if (!r.ok) { mark(el, r.message); return { ok: false, errors: [{ key: 'upi_id', message: r.message }] }; }
+      unmark(el);
+      return { ok: true, details: {
+        method: 'upi',
+        upi_id: el.value.trim().toLowerCase(),
+        handle: r.handle,
+        verified: el.dataset.verified === '1',
+      }};
+    }
+
+    if (method === 'card') {
+      const numEl = document.querySelector('[name="card_number"]');
+      const nameEl = document.querySelector('[name="card_name"]');
+      const expEl = document.querySelector('[name="card_expiry"]');
+      const cvvEl = document.querySelector('[name="card_cvv"]');
+      const errors = [];
+
+      const rawNum = (numEl?.value || '').replace(/\D/g, '');
+      const brand = detectCardBrand(rawNum);
+      const expectedCvvLen = brand.key === 'amex' ? 4 : 3;
+
+      if (!rawNum)                 { mark(numEl, 'Please enter your card number.'); errors.push({ key: 'card_number', message: 'Please enter your card number.' }); }
+      else if (rawNum.length < 13) { mark(numEl, 'Card number is too short (13-19 digits).'); errors.push({ key: 'card_number', message: 'Card number is too short (13-19 digits).' }); }
+      else if (rawNum.length > 19) { mark(numEl, 'Card number is too long (max 19 digits).'); errors.push({ key: 'card_number', message: 'Card number is too long (max 19 digits).' }); }
+      else if (!luhnValid(rawNum)) { mark(numEl, 'That card number isn\'t valid — please double-check.'); errors.push({ key: 'card_number', message: 'Invalid card number (checksum failed).' }); }
+      else                         { unmark(numEl); }
+
+      const nameVal = (nameEl?.value || '').trim();
+      if (!nameVal)                       { mark(nameEl, 'Please enter the name on your card.'); errors.push({ key: 'card_name', message: 'Please enter the name on your card.' }); }
+      else if (nameVal.length < 2)        { mark(nameEl, 'Name seems too short.'); errors.push({ key: 'card_name', message: 'Name seems too short.' }); }
+      else if (!/^[A-Za-z][A-Za-z .'-]{1,59}$/.test(nameVal)) { mark(nameEl, 'Use letters, spaces, apostrophes or dots only.'); errors.push({ key: 'card_name', message: 'Invalid characters in name.' }); }
+      else                                { unmark(nameEl); }
+
+      const expR = validateExpiry(expEl?.value);
+      if (!expR.ok) { mark(expEl, expR.message); errors.push({ key: 'card_expiry', message: expR.message }); }
+      else          { unmark(expEl); }
+
+      const cvv = (cvvEl?.value || '').replace(/\D/g, '');
+      if (!cvv)                                  { mark(cvvEl, 'Please enter the CVV.'); errors.push({ key: 'card_cvv', message: 'Please enter the CVV.' }); }
+      else if (cvv.length !== expectedCvvLen)    { mark(cvvEl, `CVV must be ${expectedCvvLen} digits${brand.key === 'amex' ? ' for Amex cards' : ''}.`); errors.push({ key: 'card_cvv', message: `CVV must be ${expectedCvvLen} digits.` }); }
+      else                                        { unmark(cvvEl); }
+
+      if (errors.length) return { ok: false, errors };
+
+      return { ok: true, details: {
+        method: 'card',
+        brand: brand.key || 'unknown',
+        brand_label: brand.label,
+        last4: rawNum.slice(-4),
+        name_on_card: nameVal,
+        expiry: expEl.value,
+        verified: numEl.dataset.verified === '1',
+      }};
+    }
+
+    if (method === 'netbanking') {
+      const bankEl = document.querySelector('[name="bank"]');
+      const otherEl = document.querySelector('[name="bank_other"]');
+      const bank = bankEl?.value || '';
+      if (!bank) {
+        mark(bankEl, 'Please select your bank.');
+        return { ok: false, errors: [{ key: 'bank', message: 'Please select your bank.' }] };
+      }
+      unmark(bankEl);
+      let bankName = bank;
+      if (bank === 'Other') {
+        const custom = (otherEl?.value || '').trim();
+        if (custom.length < 2) {
+          mark(otherEl, 'Please type your bank name.');
+          return { ok: false, errors: [{ key: 'bank_other', message: 'Please type your bank name.' }] };
+        }
+        unmark(otherEl);
+        bankName = custom;
+      }
+      return { ok: true, details: { method: 'netbanking', bank: bankName } };
+    }
+
+    if (method === 'cod') {
+      return { ok: true, details: { method: 'cod' } };
+    }
+
+    return { ok: false, message: 'Please select a payment method.' };
+  }
+
+  /** Wire the Verify buttons (simulated 1-second check with visible feedback). */
+  function wireVerifyButtons() {
+    const upiBtn = document.querySelector('[data-pay-verify="upi"]');
+    const upiEl = document.querySelector('[name="upi_id"]');
+    const upiStatus = document.getElementById('upiVerifyStatus');
+    if (upiBtn && upiEl) {
+      upiBtn.addEventListener('click', () => {
+        const r = validateUpiId(upiEl.value);
+        if (!r.ok) {
+          mark(upiEl, r.message);
+          upiStatus.innerHTML = `<span class="text-danger small">⚠ ${escapeHTML(r.message)}</span>`;
+          upiEl.dataset.verified = '';
+          return;
+        }
+        unmark(upiEl);
+        upiStatus.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="small">Checking with your bank…</span>';
+        upiBtn.disabled = true;
+        setTimeout(() => {
+          upiBtn.disabled = false;
+          upiEl.dataset.verified = '1';
+          upiStatus.innerHTML = `<span class="pay-verified">Verified — ${escapeHTML(upiEl.value.trim().toLowerCase())}</span>`;
+        }, 900);
+      });
+    }
+
+    const cardBtn = document.querySelector('[data-pay-verify="card"]');
+    const cardStatus = document.getElementById('cardVerifyStatus');
+    if (cardBtn) {
+      cardBtn.addEventListener('click', () => {
+        const r = validatePaymentMethod('card');
+        if (!r.ok) {
+          const first = r.errors?.[0];
+          cardStatus.innerHTML = `<span class="text-danger small">⚠ ${escapeHTML(first?.message || 'Please fix the card details.')}</span>`;
+          return;
+        }
+        cardStatus.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="small">Contacting your card issuer…</span>';
+        cardBtn.disabled = true;
+        setTimeout(() => {
+          cardBtn.disabled = false;
+          const numEl = document.querySelector('[name="card_number"]');
+          if (numEl) numEl.dataset.verified = '1';
+          cardStatus.innerHTML = `<span class="pay-verified">Verified — ${escapeHTML(r.details.brand_label)} ending ${escapeHTML(r.details.last4)}</span>`;
+        }, 1100);
+      });
+    }
+  }
+
+  /** Wire all payment UX (radio → panel switch, auto-format, live validation). */
+  function wirePaymentUX() {
+    document.querySelectorAll('input[name="payment"]').forEach(input => {
+      input.addEventListener('change', () => {
+        form.payment = input.value;
+        showPaymentPanel(input.value);
+        renderErrorSummary(3, []); // clear any old error summary
+      });
+    });
+    document.querySelectorAll('.pay-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const v = opt.getAttribute('data-pay-opt');
+        if (v) { form.payment = v; showPaymentPanel(v); }
+      });
+    });
+
+    // Card number: live format + brand detection
+    const cardNum = document.querySelector('[name="card_number"]');
+    if (cardNum) {
+      cardNum.addEventListener('input', () => { refreshCardUI(); cardNum.dataset.verified = ''; });
+      cardNum.addEventListener('blur', () => {
+        const r = validatePaymentMethod('card');
+        if (!r.ok && cardNum.value.trim()) {
+          // Only flag fields that actually have content, so we don't yell at
+          // the user for empty fields they haven't touched yet.
+        }
+      });
+    }
+
+    // Expiry: auto-insert /
+    const exp = document.querySelector('[name="card_expiry"]');
+    if (exp) {
+      exp.addEventListener('input', () => {
+        const f = formatExpiry(exp.value);
+        if (f !== exp.value) exp.value = f;
+      });
+      exp.addEventListener('blur', () => {
+        if (!exp.value.trim()) return;
+        const r = validateExpiry(exp.value);
+        if (!r.ok) mark(exp, r.message); else unmark(exp);
+      });
+    }
+
+    // CVV: digits only
+    const cvv = document.querySelector('[name="card_cvv"]');
+    if (cvv) {
+      cvv.addEventListener('input', () => {
+        const digits = cvv.value.replace(/\D/g, '').slice(0, 4);
+        if (digits !== cvv.value) cvv.value = digits;
+      });
+    }
+
+    // UPI ID: lowercase + trim spaces
+    const upi = document.querySelector('[name="upi_id"]');
+    if (upi) {
+      upi.addEventListener('input', () => {
+        const lc = upi.value.replace(/\s+/g, '').toLowerCase();
+        if (lc !== upi.value) upi.value = lc;
+        upi.dataset.verified = '';
+        // Clear stale verify status
+        const s = document.getElementById('upiVerifyStatus');
+        if (s) s.innerHTML = '';
+      });
+      upi.addEventListener('blur', () => {
+        if (!upi.value.trim()) return;
+        const r = validateUpiId(upi.value);
+        if (!r.ok) mark(upi, r.message); else unmark(upi);
+      });
+    }
+
+    // Net Banking: show "Other" field when needed
+    const bank = document.querySelector('[name="bank"]');
+    const bankOtherWrap = document.getElementById('bankOtherWrap');
+    if (bank && bankOtherWrap) {
+      bank.addEventListener('change', () => {
+        bankOtherWrap.style.display = bank.value === 'Other' ? '' : 'none';
+        if (bank.value) unmark(bank);
+      });
+    }
+  }
+
+  /** Friendly short description of the sanitized payment details (for Review). */
+  function describePaymentDetails(d) {
+    if (!d) return '';
+    if (d.method === 'upi')        return `UPI: <code>${escapeHTML(d.upi_id)}</code>${d.verified ? ' <span class="pay-verified ms-1">Verified</span>' : ''}`;
+    if (d.method === 'card')       return `${escapeHTML(d.brand_label || 'Card')} ending <strong>${escapeHTML(d.last4)}</strong> · ${escapeHTML(d.name_on_card)}${d.verified ? ' <span class="pay-verified ms-1">Verified</span>' : ''}`;
+    if (d.method === 'netbanking') return `Net Banking — <strong>${escapeHTML(d.bank)}</strong>`;
+    if (d.method === 'cod')        return `Cash or UPI on delivery`;
+    return '';
+  }
+
   // ---------- Summary ----------
   function renderSummary() {
     const items = FurnixCart.read();
@@ -465,6 +825,7 @@
           <span class="text-muted-soft">${escapeHTML(form.delivery_slot)}</span>
           <div class="small text-muted-soft text-uppercase mb-1 mt-3" style="letter-spacing:.1em">Payment</div>
           <strong>${payLabel}</strong>
+          ${form.payment_details ? `<div class="small mt-1">${describePaymentDetails(form.payment_details)}</div>` : ''}
         </div>
       </div>
       <hr />
@@ -509,7 +870,7 @@
           geo_accuracy: form.geo_accuracy,
         },
         delivery: { date: form.delivery_date, slot: form.delivery_slot },
-        payment:  { method: form.payment },
+        payment:  { method: form.payment, details: form.payment_details || null },
         coupon_code: FurnixCart.getCoupon() || null,
         items,
         notes: form.notes,
@@ -535,14 +896,10 @@
     document.querySelector('[name="delivery_date"]').min = minDate.toISOString().slice(0, 10);
     document.querySelector('[name="delivery_date"]').value = minDate.toISOString().slice(0, 10);
 
-    // Payment option UX
-    document.querySelectorAll('.pay-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        document.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-        opt.querySelector('input').checked = true;
-      });
-    });
+    // Payment method UX: radio switch, per-method panel, formatting, verify
+    wirePaymentUX();
+    wireVerifyButtons();
+    showPaymentPanel(form.payment);
 
     // Step navigation
     document.querySelectorAll('[data-next]').forEach(btn => {

@@ -41,6 +41,10 @@
       return request('/api/checkout', { method: 'POST', body: JSON.stringify(payload) });
     },
     getOrder(orderNumber) { return request(`/api/orders/${encodeURIComponent(orderNumber)}`); },
+    trackOrder(orderNumber, contact) {
+      const q = new URLSearchParams({ order: orderNumber, contact }).toString();
+      return request(`/api/track?${q}`);
+    },
     submitQuery(payload) {
       return request('/api/queries', { method: 'POST', body: JSON.stringify(payload) });
     },

@@ -8,6 +8,8 @@
     "dev": "nodemon server.js",
     "init-db": "node scripts/init-db.js",
     "migrate-address": "node scripts/migrate-address.js",
+    "migrate-payment": "node scripts/migrate-payment.js",
+    "migrate-status": "node scripts/migrate-status.js",
     "test-mail": "node scripts/test-mail.js"
   },
   "keywords": [

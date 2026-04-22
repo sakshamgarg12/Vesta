@@ -60,8 +60,8 @@ app.get('/api/health', (_req, res) => {
     time: new Date().toISOString(),
     store: {
       name: process.env.STORE_NAME || 'FurniX',
-      email: process.env.STORE_EMAIL || 'contact@furnix.store',
-      phone: process.env.STORE_PHONE || '+91-9000000000',
+      email: process.env.STORE_EMAIL || 'contactFurniX@gmail.com',
+      phone: process.env.STORE_PHONE || '+91-7583777875',
     },
   });
 });

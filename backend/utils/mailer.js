@@ -19,8 +19,8 @@ const nodemailer = require('nodemailer');
 const { buildInvoicePDF } = require('./invoice');
 
 const BRAND_NAME = process.env.STORE_NAME || 'FurniX';
-const STORE_EMAIL = process.env.STORE_EMAIL || 'contact@furnix.store';
-const STORE_PHONE = process.env.STORE_PHONE || '+91-9000000000';
+const STORE_EMAIL = process.env.STORE_EMAIL || 'contactFurniX@gmail.com';
+const STORE_PHONE = process.env.STORE_PHONE || '+91-7583777875';
 
 let transporter = null;
 let verifiedOnce = false;
@@ -70,6 +70,43 @@ function payLabel(method) {
     card: 'Credit / Debit Card',
     netbanking: 'Net Banking',
   })[method] || method || '—';
+}
+
+/**
+ * Render a sanitized payment-details object into a short HTML fragment.
+ * Safe to call with null / undefined / string.
+ */
+function payDetailsHTML(details) {
+  let d = details;
+  if (!d) return '';
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch (_) { return ''; }
+  }
+  if (!d || typeof d !== 'object') return '';
+  const verified = d.verified ? ` <span style="color:#2D5A27;font-weight:600;">✓ Verified</span>` : '';
+
+  if (d.method === 'upi') {
+    return `<div style="font-size:13px;color:#333;margin-top:4px;">
+      UPI ID: <strong>${esc(d.upi_id || '')}</strong>${verified}
+    </div>`;
+  }
+  if (d.method === 'card') {
+    return `<div style="font-size:13px;color:#333;margin-top:4px;">
+      <strong>${esc(d.brand_label || 'Card')}</strong> ending
+      <strong>${esc(d.last4 || '')}</strong> · ${esc(d.name_on_card || '')} · Exp ${esc(d.expiry || '')}${verified}
+    </div>`;
+  }
+  if (d.method === 'netbanking') {
+    return `<div style="font-size:13px;color:#333;margin-top:4px;">
+      Bank: <strong>${esc(d.bank || '')}</strong>
+    </div>`;
+  }
+  if (d.method === 'cod') {
+    return `<div style="font-size:13px;color:#333;margin-top:4px;">
+      Cash or UPI on delivery
+    </div>`;
+  }
+  return '';
 }
 
 function itemsTableHTML(items) {
@@ -161,6 +198,7 @@ function normaliseOrder(order) {
     delivery_slot: o.delivery?.slot || o.delivery_slot,
     payment_method: o.payment_method,
     payment_status: o.payment_status || (o.payment_method === 'cod' ? 'pending' : 'paid'),
+    payment_details: o.payment_details || null,
     subtotal: o.subtotal,
     discount_code: o.discount_code,
     discount_amount: o.discount_amount,
@@ -229,16 +267,27 @@ function buildWhatsAppURL(o) {
 
 function customerEmailHTML(o, items) {
   const waURL = buildWhatsAppURL(o);
+  const trackUrl = trackingURL(o.order_number, o.customer_email);
   const waBlock = waURL ? `
     <div style="margin:24px 0;padding:16px;background:#F9F7F2;border-radius:6px;text-align:center;">
       <div style="font-size:14px;color:#333;margin-bottom:10px;">
         <strong>Help us deliver on time</strong> — share your live location on WhatsApp so our team reaches the right gate.
       </div>
       <a href="${waURL}" target="_blank" rel="noopener"
-         style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+         style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-right:8px;">
         💬 Confirm address on WhatsApp
       </a>
-    </div>` : '';
+      <a href="${esc(trackUrl)}" target="_blank" rel="noopener"
+         style="display:inline-block;background:#2D5A27;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+        🔎 Track your order
+      </a>
+    </div>` : `
+    <div style="margin:24px 0;text-align:center;">
+      <a href="${esc(trackUrl)}" target="_blank" rel="noopener"
+         style="display:inline-block;background:#2D5A27;color:#fff;padding:12px 22px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+        🔎 Track your order
+      </a>
+    </div>`;
 
   return `
   <div style="max-width:640px;margin:0 auto;font-family:Arial,sans-serif;color:#333;background:#fff;">
@@ -265,8 +314,11 @@ function customerEmailHTML(o, items) {
           <td style="padding:6px 0;text-align:right;">${esc(o.delivery_date)} · ${esc(o.delivery_slot || 'Any time')}</td>
         </tr>
         <tr>
-          <td style="padding:6px 0;"><strong>Payment</strong></td>
-          <td style="padding:6px 0;text-align:right;">${esc(payLabel(o.payment_method))} (${esc(String(o.payment_status).toUpperCase())})</td>
+          <td style="padding:6px 0;vertical-align:top;"><strong>Payment</strong></td>
+          <td style="padding:6px 0;text-align:right;">
+            ${esc(payLabel(o.payment_method))} (${esc(String(o.payment_status).toUpperCase())})
+            ${payDetailsHTML(o.payment_details)}
+          </td>
         </tr>
       </table>
 
@@ -323,8 +375,11 @@ function adminEmailHTML(o, items) {
           <td style="padding:6px 0;">${esc(o.delivery_date)} · ${esc(o.delivery_slot || 'Any time')}</td>
         </tr>
         <tr>
-          <td style="padding:6px 0;"><strong>Payment</strong></td>
-          <td style="padding:6px 0;">${esc(payLabel(o.payment_method))} — <strong>${esc(String(o.payment_status).toUpperCase())}</strong></td>
+          <td style="padding:6px 0;vertical-align:top;"><strong>Payment</strong></td>
+          <td style="padding:6px 0;">
+            ${esc(payLabel(o.payment_method))} — <strong>${esc(String(o.payment_status).toUpperCase())}</strong>
+            ${payDetailsHTML(o.payment_details)}
+          </td>
         </tr>
         ${o.notes ? `<tr>
           <td style="padding:6px 0;vertical-align:top;"><strong>Notes</strong></td>
@@ -414,4 +469,118 @@ async function sendOrderEmails({ order, items }) {
   return { sent: true, verifiedOnce };
 }
 
-module.exports = { sendOrderEmails, getTransporter };
+/* --------------------------------------------------------------------------
+ * Status-update email (sent when an admin advances the order through its
+ * lifecycle: confirmed → packed → shipped → out_for_delivery → delivered).
+ * -------------------------------------------------------------------------- */
+const STATUS_COPY = {
+  confirmed: {
+    subject: (n) => `Your ${BRAND_NAME} order ${n} is confirmed`,
+    title:   'Order confirmed',
+    body:    'Our craftsmen have started preparing your order. We\'ll email you again the moment it ships.',
+    emoji:   '✅',
+  },
+  packed: {
+    subject: (n) => `Your ${BRAND_NAME} order ${n} has been packed`,
+    title:   'Packed & ready',
+    body:    'Your furniture has been carefully packed and is ready to hit the road.',
+    emoji:   '📦',
+  },
+  shipped: {
+    subject: (n) => `Your ${BRAND_NAME} order ${n} has shipped!`,
+    title:   'On the way',
+    body:    'Your order has left our workshop. Keep an eye on the tracking page for live updates.',
+    emoji:   '🚚',
+  },
+  out_for_delivery: {
+    subject: (n) => `Your ${BRAND_NAME} order ${n} is out for delivery today`,
+    title:   'Out for delivery',
+    body:    'Your order is on its way to you today. Please keep your phone handy so our partner can reach you.',
+    emoji:   '🛵',
+  },
+  delivered: {
+    subject: (n) => `Your ${BRAND_NAME} order ${n} is delivered 🎉`,
+    title:   'Delivered',
+    body:    'Enjoy your new furniture! If anything isn\'t perfect, just reply to this email — we\'ll make it right.',
+    emoji:   '🎉',
+  },
+  cancelled: {
+    subject: (n) => `Your ${BRAND_NAME} order ${n} has been cancelled`,
+    title:   'Order cancelled',
+    body:    'Your order has been cancelled. If this was a mistake or you have any questions, just reply to this email.',
+    emoji:   '⚠',
+  },
+};
+
+function trackingURL(orderNumber, contact) {
+  // Build a deep-link that pre-fills the tracker form when possible.
+  const base = process.env.SITE_URL || '';
+  const u = `/track.html?order=${encodeURIComponent(orderNumber)}${contact ? `&contact=${encodeURIComponent(contact)}` : ''}`;
+  return base ? `${base.replace(/\/$/, '')}${u}` : u;
+}
+
+function statusEmailHTML(o, copy, trackUrl) {
+  const track = trackUrl ? `
+    <div style="margin:22px 0;text-align:center;">
+      <a href="${esc(trackUrl)}" target="_blank" rel="noopener"
+         style="display:inline-block;background:#2D5A27;color:#fff;padding:12px 22px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
+        🔎 Track your order
+      </a>
+    </div>` : '';
+
+  const trackingInfo = (o.tracking_number || o.courier_name) ? `
+    <div style="margin-top:12px;padding:10px 12px;background:#F9F7F2;border-left:3px solid #2D5A27;border-radius:4px;font-size:13px;color:#333;">
+      ${o.courier_name ? `<div><strong>Courier:</strong> ${esc(o.courier_name)}</div>` : ''}
+      ${o.tracking_number ? `<div><strong>AWB / Tracking #:</strong> ${esc(o.tracking_number)}</div>` : ''}
+    </div>` : '';
+
+  return `
+  <div style="max-width:640px;margin:0 auto;font-family:Arial,sans-serif;color:#333;background:#fff;">
+    ${headerHTML(`${copy.emoji}  ${copy.title}`)}
+    <div style="padding:24px;">
+      <p style="font-size:15px;margin:0 0 6px 0;">Hi ${esc(o.customer_name)},</p>
+      <p style="font-size:14px;color:#6B6B6B;margin:0 0 16px 0;">
+        ${copy.body}
+      </p>
+
+      <table style="width:100%;font-size:13px;color:#333;margin-bottom:18px;">
+        <tr><td style="padding:6px 0;"><strong>Order #</strong></td><td style="padding:6px 0;text-align:right;">${esc(o.order_number)}</td></tr>
+        <tr><td style="padding:6px 0;"><strong>Delivery</strong></td><td style="padding:6px 0;text-align:right;">${esc(o.delivery_date)} · ${esc(o.delivery_slot || 'Any time')}</td></tr>
+      </table>
+
+      ${trackingInfo}
+      ${track}
+    </div>
+    ${footerHTML()}
+  </div>`;
+}
+
+async function sendStatusUpdateEmail({ order, newStatus }) {
+  const t = getTransporter();
+  if (!t) return { skipped: true };
+  const copy = STATUS_COPY[newStatus];
+  if (!copy) return { skipped: true };
+
+  const o = normaliseOrder(order);
+  const fromName = BRAND_NAME;
+  const fromAddress = process.env.MAIL_FROM || process.env.MAIL_USER;
+  const from = `"${fromName}" <${fromAddress}>`;
+
+  const trackUrl = trackingURL(o.order_number, o.customer_email);
+
+  try {
+    const info = await t.sendMail({
+      from,
+      to: o.customer_email,
+      subject: copy.subject(o.order_number),
+      html: statusEmailHTML(o, copy, trackUrl),
+    });
+    console.log(`[mail] status "${newStatus}" emailed to ${o.customer_email} (${info.messageId})`);
+    return { sent: true };
+  } catch (err) {
+    console.warn('[mail] status email failed:', err.message);
+    return { sent: false, error: err.message };
+  }
+}
+
+module.exports = { sendOrderEmails, sendStatusUpdateEmail, getTransporter, trackingURL };

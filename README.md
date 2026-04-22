@@ -31,6 +31,8 @@ and **HTML5 + Bootstrap 5 + Vanilla JavaScript** on the frontend.
 - `POST /api/coupons/validate` – validate a coupon against a subtotal.
 - `POST /api/checkout` – creates an order + `order_items`, decrements stock (transactional).
 - `GET  /api/orders/:orderNumber` – fetch an order + items (for the success page).
+- `GET  /api/track?order=...&contact=...` – customer-facing status tracking lookup (rate-limited).
+- `PATCH /api/admin/orders/:orderNumber/status` – **admin only** — advance an order through its lifecycle. Send `x-admin-token: $ADMIN_TOKEN`.
 - `POST /api/queries` – saves a contact-form submission.
 
 Server hardening: `helmet`, `cors`, `express-rate-limit`, server-side re-pricing (the client total is never trusted).
@@ -308,6 +310,49 @@ SEO is 10% code and 90% content + links. The site is now technically perfect; to
   SELECT order_number, customer_name, total, order_status, created_at
   FROM orders ORDER BY id DESC LIMIT 50;
   ```
+
+---
+
+## 4c · Order tracking & admin status updates
+
+Every order gets a **customer-facing tracker** at `/track.html` that shows a live
+timeline (Placed → Confirmed → Packed → Shipped → Out for delivery → Delivered),
+an ETA countdown, and — when set — the courier name and AWB number.
+
+The customer needs **the order number + their email (or last 4 digits of phone)**
+to look up an order. The endpoint is rate-limited (30 lookups per 10 minutes per IP)
+so order numbers cannot be enumerated.
+
+### Advancing an order's status (admin only)
+
+Set `ADMIN_TOKEN` in `.env` to any long random string, then:
+
+```bash
+# Mark order confirmed
+curl -X PATCH "http://localhost:5000/api/admin/orders/FX-20260422-123456/status" \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: $ADMIN_TOKEN" \
+  -d '{"status":"confirmed"}'
+
+# Mark shipped and include a courier/AWB — customer gets an email with a Track CTA.
+curl -X PATCH "http://localhost:5000/api/admin/orders/FX-20260422-123456/status" \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: $ADMIN_TOKEN" \
+  -d '{"status":"shipped","courier_name":"Delhivery","tracking_number":"AWB123456"}'
+```
+
+Allowed statuses: `confirmed` · `packed` · `shipped` · `out_for_delivery` · `delivered` · `cancelled`.
+
+Pass `"notify": false` in the body to skip the customer email for a silent correction.
+
+### One-time migration
+
+New columns (`confirmed_at`, `packed_at`, `shipped_at`, `out_for_delivery_at`,
+`delivered_at`, `tracking_number`, `courier_name`) are added automatically by:
+
+```bash
+npm run migrate-status
+```
 
 ---
 

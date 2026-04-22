@@ -52,11 +52,85 @@
     }
   }
 
+  function wireTrackButton(order) {
+    const btn = document.getElementById('btn-track-order');
+    if (!btn || !order?.order_number) return;
+    const email = order.customer?.email || order.customer_email || '';
+    const q = new URLSearchParams({ order: order.order_number });
+    if (email) q.set('contact', email);
+    btn.href = `/track.html?${q.toString()}`;
+  }
+
+  function fmtDateTime(d) {
+    if (!d) return '';
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'numeric', minute:'2-digit' });
+  }
+
+  async function renderStatusSnapshot(order) {
+    const el = document.getElementById('statusSnapshot');
+    if (!el || !order?.order_number) return;
+    const email = order.customer?.email || order.customer_email;
+    if (!email) return; // tracking endpoint needs a contact
+    try {
+      const { tracking } = await FurnixAPI.trackOrder(order.order_number, email);
+      const eta = tracking.eta_days;
+      let etaLine = '';
+      if (tracking.current_status === 'delivered') {
+        etaLine = `Delivered on ${escapeHTML(new Date(tracking.delivery_date || Date.now()).toDateString())}`;
+      } else if (tracking.cancelled) {
+        etaLine = 'Order cancelled';
+      } else if (eta != null && tracking.delivery_date) {
+        etaLine = eta <= 0 ? `Arrives today · ${escapeHTML(new Date(tracking.delivery_date).toDateString())}`
+                           : eta === 1 ? `Arrives tomorrow · ${escapeHTML(new Date(tracking.delivery_date).toDateString())}`
+                                       : `Arrives in ${eta} days · ${escapeHTML(new Date(tracking.delivery_date).toDateString())}`;
+      }
+      el.innerHTML = `
+        <div class="fx-track-card">
+          <div class="fx-track-hero">
+            <div>
+              <div class="small text-muted-soft text-uppercase" style="letter-spacing:.12em;">Live status</div>
+              <div style="font-size:1.1rem;font-weight:600;">${escapeHTML(tracking.current_label)}</div>
+            </div>
+            ${etaLine ? `<div class="eta"><strong>${etaLine}</strong></div>` : ''}
+          </div>
+          ${!tracking.cancelled ? `<div class="fx-progress-bar"><span style="width:${tracking.progress_pct}%"></span></div>` : ''}
+          <ul class="fx-timeline">
+            ${tracking.stages.map(s => `
+              <li class="${s.done ? 'done' : ''} ${s.active ? 'active' : ''} ${!s.done && !s.active ? 'pending' : ''}">
+                <span class="dot"></span>
+                <div class="t-label">${escapeHTML(s.label)}</div>
+                <div class="t-time">${s.timestamp ? escapeHTML(fmtDateTime(s.timestamp)) : (s.active ? 'In progress' : 'Pending')}</div>
+              </li>`).join('')}
+          </ul>
+        </div>`;
+      el.style.display = '';
+    } catch (_) { /* silently skip snapshot if tracking is unavailable */ }
+  }
+
+  function describePayment(details) {
+    let d = details;
+    if (!d) return '';
+    if (typeof d === 'string') {
+      try { d = JSON.parse(d); } catch (_) { return ''; }
+    }
+    if (!d || typeof d !== 'object') return '';
+    if (d.method === 'upi')        return `UPI: <code>${escapeHTML(d.upi_id || '')}</code>${d.verified ? ' <span class="text-forest">✓ Verified</span>' : ''}`;
+    if (d.method === 'card')       return `${escapeHTML(d.brand_label || 'Card')} ending <strong>${escapeHTML(d.last4 || '')}</strong> · ${escapeHTML(d.name_on_card || '')}${d.verified ? ' <span class="text-forest">✓ Verified</span>' : ''}`;
+    if (d.method === 'netbanking') return `Bank: <strong>${escapeHTML(d.bank || '')}</strong>`;
+    if (d.method === 'cod')        return `Cash or UPI on delivery`;
+    return '';
+  }
+
   function renderReceipt(order, items) {
     wireInvoiceDownload(order);
     wireWhatsApp(order);
+    wireTrackButton(order);
+    renderStatusSnapshot(order);
     const placed = new Date(order.placed_at || order.created_at || Date.now());
     const payLabel = { upi: 'UPI', card: 'Credit / Debit Card', netbanking: 'Net Banking', cod: 'Cash on Delivery' }[order.payment_method] || order.payment_method;
+    const payDetailsHTML = describePayment(order.payment_details);
 
     // Handle two shapes: /checkout response or /orders/:n response
     const customerName = order.customer?.name || order.customer_name;
@@ -116,6 +190,7 @@
           <div class="small"><strong>Delivery:</strong> ${new Date(deliveryDate).toDateString()}</div>
           <div class="small"><strong>Slot:</strong> ${escapeHTML(deliverySlot || 'Any time')}</div>
           <div class="small mt-1"><strong>Payment:</strong> ${escapeHTML(payLabel)}</div>
+          ${payDetailsHTML ? `<div class="small">${payDetailsHTML}</div>` : ''}
           <div class="small"><strong>Status:</strong> <span class="text-forest">Order placed</span></div>
         </div>
       </div>
@@ -157,7 +232,7 @@
 
       <hr class="mt-4" />
       <div class="small text-muted-soft">
-        Questions? Email <a href="mailto:contact@furnix.store">contact@furnix.store</a> or call +91-9000000000.
+        Questions? Email <a href="mailto:contactFurniX@gmail.com">contactFurniX@gmail.com</a> or call +91 75837 77875.
         Keep this receipt for your records — FurniX GSTIN will be printed on the invoice shipped with your order.
       </div>
     `;

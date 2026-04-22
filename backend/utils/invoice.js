@@ -14,8 +14,8 @@ const PDFDocument = require('pdfkit');
 const BRAND = {
   name: process.env.STORE_NAME || 'FurniX',
   tagline: 'Heirloom wooden furniture',
-  email: process.env.STORE_EMAIL || 'contact@furnix.store',
-  phone: process.env.STORE_PHONE || '+91-9000000000',
+  email: process.env.STORE_EMAIL || 'contactFurniX@gmail.com',
+  phone: process.env.STORE_PHONE || '+91-7583777875',
   gstin: process.env.STORE_GSTIN || '',
   address: process.env.STORE_ADDRESS || '',
 };
@@ -48,6 +48,21 @@ function formatDate(d) {
   const date = new Date(d);
   if (Number.isNaN(date.getTime())) return String(d);
   return date.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: '2-digit' });
+}
+
+/** One-line human-readable summary of sanitized payment details. */
+function formatPayDetails(details) {
+  let d = details;
+  if (!d) return '';
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch (_) { return ''; }
+  }
+  if (!d || typeof d !== 'object') return '';
+  if (d.method === 'upi')        return `UPI: ${d.upi_id || ''}`;
+  if (d.method === 'card')       return `${d.brand_label || 'Card'} ****${d.last4 || ''} · ${d.name_on_card || ''} · Exp ${d.expiry || ''}`;
+  if (d.method === 'netbanking') return `Net Banking: ${d.bank || ''}`;
+  if (d.method === 'cod')        return 'Cash / UPI on delivery';
+  return '';
 }
 
 /**
@@ -87,6 +102,7 @@ function buildInvoicePDF({ order, items }) {
       const deliverySlot = o.delivery?.slot || o.delivery_slot || 'Any time';
       const paymentMethod = o.payment_method;
       const paymentStatus = o.payment_status || (paymentMethod === 'cod' ? 'pending' : 'paid');
+      const paymentDetailsLine = formatPayDetails(o.payment_details);
       const orderNumber = o.order_number;
       const placedAt = o.placed_at || o.created_at || new Date().toISOString();
       const addrTypeLabel = { home: 'Home', office: 'Office', other: 'Other' }[shipAddrType] || 'Home';
@@ -189,6 +205,12 @@ function buildInvoicePDF({ order, items }) {
       doc.text(String(deliverySlot), 210, stripTop + 20);
       doc.text(payLabel(paymentMethod), 340, stripTop + 20);
       doc.text(String(paymentStatus).toUpperCase(), 470, stripTop + 20);
+
+      // Payment-details detail line (card last-4 / UPI ID / bank) below the strip.
+      if (paymentDetailsLine) {
+        doc.font('Helvetica').fontSize(9).fillColor(COLORS.muted);
+        doc.text(paymentDetailsLine, 50, stripTop + 42, { width: 495 });
+      }
 
       // ---------- Items table ----------
       const tableTop = 320;

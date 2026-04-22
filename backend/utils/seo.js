@@ -8,8 +8,8 @@
  */
 
 const STORE_NAME = process.env.STORE_NAME || 'FurniX';
-const STORE_EMAIL = process.env.STORE_EMAIL || 'contact@furnix.store';
-const STORE_PHONE = process.env.STORE_PHONE || '+91-9000000000';
+const STORE_EMAIL = process.env.STORE_EMAIL || 'contactFurniX@gmail.com';
+const STORE_PHONE = process.env.STORE_PHONE || '+91-7583777875';
 
 function getSiteUrl(req) {
   if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, '');
@@ -155,15 +155,14 @@ function localBusinessJsonLd(siteUrl) {
     priceRange: '₹₹-₹₹₹',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'FurniX Workshop, Industrial Area',
-      addressLocality: 'Jodhpur',
+      streetAddress: 'Puja Furniture & Hardware, Subhash Chowk, Mirana Road',
+      addressLocality: 'Bayana',
       addressRegion: 'Rajasthan',
-      postalCode: '342001',
       addressCountry: 'IN',
     },
     openingHoursSpecification: [{
       '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+      dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
       opens: '10:00',
       closes: '19:00',
     }],
