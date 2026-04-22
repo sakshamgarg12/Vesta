@@ -13,7 +13,7 @@
   }
 
   function render(p) {
-    document.title = `${p.name} — FurniX`;
+    document.title = `${p.name} — Vesta`;
     const mrp = p.mrp ? Number(p.mrp) : null;
     const off = mrp && mrp > p.price ? Math.round(((mrp - p.price) / mrp) * 100) : 0;
 
@@ -34,13 +34,13 @@
       <div class="row g-5">
         <div class="col-lg-6 product-gallery">
           <img id="mainImg" src="${gallery[0]}" alt="${escapeHTML(p.name)}"
-               onerror="this.src='https://via.placeholder.com/900x700?text=FurniX'"/>
+               onerror="this.src='https://via.placeholder.com/900x700?text=Vesta'"/>
           ${gallery.length > 1 ? `
             <div class="d-flex gap-2 mt-3">
               ${gallery.map((g, i) => `
                 <img src="${g}" class="thumb" data-i="${i}" alt="thumb ${i+1}"
                      style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid ${i===0?'var(--forest)':'transparent'}"
-                     onerror="this.src='https://via.placeholder.com/120?text=FurniX'"/>
+                     onerror="this.src='https://via.placeholder.com/120?text=Vesta'"/>
               `).join('')}
             </div>` : ''}
         </div>
@@ -50,8 +50,8 @@
           <h1 style="font-size:clamp(1.8rem, 3vw, 2.4rem); margin: .5rem 0 1rem">${escapeHTML(p.name)}</h1>
 
           <div class="d-flex align-items-center gap-2 mb-2">
-            <span style="font-size:1.8rem; font-weight:600">${FurnixCart.formatINR(p.price)}</span>
-            ${mrp ? `<span style="color:var(--charcoal-soft); text-decoration:line-through">${FurnixCart.formatINR(mrp)}</span>` : ''}
+            <span style="font-size:1.8rem; font-weight:600">${VestaCart.formatINR(p.price)}</span>
+            ${mrp ? `<span style="color:var(--charcoal-soft); text-decoration:line-through">${VestaCart.formatINR(mrp)}</span>` : ''}
             ${off ? `<span class="text-forest small" style="font-weight:600">${off}% off</span>` : ''}
           </div>
           <div class="small text-muted-soft mb-3">Inclusive of all taxes · GST @ 18% included in cart.</div>
@@ -77,6 +77,15 @@
               ${p.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
             </button>
             <button class="btn btn-outline-forest" id="buyNowBtn" ${p.stock <= 0 ? 'disabled' : ''}>Buy Now</button>
+          </div>
+
+          <div class="mb-3">
+            <a href="/ai-suggest.html?category=${encodeURIComponent(p.category)}" class="ai-try-button">
+              🪄 Try this in your room — AI Stylist
+            </a>
+            <div class="small text-muted-soft mt-1">
+              Snap a photo of your space to see which Vesta pieces fit best.
+            </div>
           </div>
 
           <ul class="list-unstyled small text-muted-soft mt-4">
@@ -109,11 +118,11 @@
     });
 
     shell.querySelector('#addToCartBtn').addEventListener('click', () => {
-      FurnixCart.add(p, parseInt(qtyIn.value, 10) || 1);
-      FurnixCart.openDrawer();
+      VestaCart.add(p, parseInt(qtyIn.value, 10) || 1);
+      VestaCart.openDrawer();
     });
     shell.querySelector('#buyNowBtn').addEventListener('click', () => {
-      FurnixCart.add(p, parseInt(qtyIn.value, 10) || 1);
+      VestaCart.add(p, parseInt(qtyIn.value, 10) || 1);
       location.href = '/checkout.html';
     });
 
@@ -122,7 +131,7 @@
 
   async function loadRelated(current) {
     try {
-      const { products } = await FurnixAPI.getProducts({ category: current.category, limit: 8 });
+      const { products } = await VestaAPI.getProducts({ category: current.category, limit: 8 });
       const related = products.filter(p => p.id !== current.id).slice(0, 4);
       if (!related.length) return;
 
@@ -143,8 +152,8 @@
                 <span class="wood-chip">${escapeHTML(p.wood_type)}</span>
                 <h3 class="name">${escapeHTML(p.name)}</h3>
                 <div class="price">
-                  ${FurnixCart.formatINR(p.price)}
-                  ${mrp ? `<span class="mrp">${FurnixCart.formatINR(mrp)}</span>` : ''}
+                  ${VestaCart.formatINR(p.price)}
+                  ${mrp ? `<span class="mrp">${VestaCart.formatINR(mrp)}</span>` : ''}
                   ${off ? `<span class="off">${off}% off</span>` : ''}
                 </div>
                 <a class="btn btn-outline-forest" href="/product.html?slug=${encodeURIComponent(p.slug)}">View Details</a>
@@ -165,7 +174,7 @@
       return;
     }
     try {
-      const { product } = await FurnixAPI.getProduct(id);
+      const { product } = await VestaAPI.getProduct(id);
       render(product);
     } catch (err) {
       shell.innerHTML = `<div class="text-center py-5 text-muted-soft">

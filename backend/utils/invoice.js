@@ -1,5 +1,5 @@
 /**
- * PDF invoice generator for FurniX orders.
+ * PDF invoice generator for Vesta orders.
  *
  * Returns a Buffer containing a fully-formatted A4 invoice for the given
  * order + items. Uses `pdfkit` with built-in fonts, so there are no
@@ -12,9 +12,9 @@
 const PDFDocument = require('pdfkit');
 
 const BRAND = {
-  name: process.env.STORE_NAME || 'FurniX',
+  name: process.env.STORE_NAME || 'Vesta',
   tagline: 'Heirloom wooden furniture',
-  email: process.env.STORE_EMAIL || 'contactFurniX@gmail.com',
+  email: process.env.STORE_EMAIL || 'contactVesta@gmail.com',
   phone: process.env.STORE_PHONE || '+91-7583777875',
   gstin: process.env.STORE_GSTIN || '',
   address: process.env.STORE_ADDRESS || '',

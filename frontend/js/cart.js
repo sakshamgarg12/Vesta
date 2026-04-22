@@ -1,8 +1,8 @@
 /**
- * FurniX Cart
+ * Vesta Cart
  *
- * Persists to localStorage under the key `furnix_cart`.
- * Exposes `window.FurnixCart` with helpers plus mount/render for the drawer.
+ * Persists to localStorage under the key `vesta_cart`.
+ * Exposes `window.VestaCart` with helpers plus mount/render for the drawer.
  *
  * Business rules (mirrored on the server):
  *   - GST 18% on (subtotal - discount)
@@ -11,8 +11,8 @@
  *               FIRSTBED -> flat ₹2000 off (min subtotal ₹10,000)
  */
 (function () {
-  const KEY = 'furnix_cart';
-  const COUPON_KEY = 'furnix_coupon';
+  const KEY = 'vesta_cart';
+  const COUPON_KEY = 'vesta_coupon';
 
   const GST_RATE = 0.18;
   const SHIPPING_FEE = 499;
@@ -27,7 +27,7 @@
     dispatch();
   }
   function dispatch() {
-    document.dispatchEvent(new CustomEvent('furnix:cart-updated'));
+    document.dispatchEvent(new CustomEvent('vesta:cart-updated'));
     updateBadge();
   }
 
@@ -282,14 +282,14 @@
       if (openBtn) { e.preventDefault(); openDrawer(); }
     });
 
-    document.addEventListener('furnix:cart-updated', () => {
+    document.addEventListener('vesta:cart-updated', () => {
       if (document.querySelector('#fxCartDrawer.open')) renderDrawer();
     });
 
     updateBadge();
   });
 
-  window.FurnixCart = {
+  window.VestaCart = {
     read, write, add, remove, updateQty, clear, count,
     computeTotals, applyCoupon, setCoupon, getCoupon,
     formatINR, openDrawer, closeDrawer, toast,

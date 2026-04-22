@@ -1,5 +1,5 @@
 /**
- * Gmail-based mailer for FurniX.
+ * Gmail-based mailer for Vesta.
  *
  * - Reads SMTP credentials from env (see .env.example).
  * - Exposes sendOrderEmails({order, items}) which fires off BOTH:
@@ -18,8 +18,8 @@
 const nodemailer = require('nodemailer');
 const { buildInvoicePDF } = require('./invoice');
 
-const BRAND_NAME = process.env.STORE_NAME || 'FurniX';
-const STORE_EMAIL = process.env.STORE_EMAIL || 'contactFurniX@gmail.com';
+const BRAND_NAME = process.env.STORE_NAME || 'Vesta';
+const STORE_EMAIL = process.env.STORE_EMAIL || 'contactVesta@gmail.com';
 const STORE_PHONE = process.env.STORE_PHONE || '+91-7583777875';
 
 let transporter = null;
@@ -257,7 +257,7 @@ function buildWhatsAppURL(o) {
   const mapLine = (o.shipping_latitude != null && o.shipping_longitude != null)
     ? `\nMy GPS pin: https://www.google.com/maps?q=${o.shipping_latitude},${o.shipping_longitude}`
     : '';
-  const msg = `Hi FurniX team, confirming my order ${o.order_number}.\n` +
+  const msg = `Hi Vesta team, confirming my order ${o.order_number}.\n` +
               `Address: ${[o.shipping_flat, o.shipping_building, o.shipping_street].filter(Boolean).join(', ')}, ` +
               `${o.shipping_city} - ${o.shipping_pincode}. ` +
               `Landmark: ${o.shipping_landmark || '—'}.` +
@@ -346,7 +346,7 @@ function adminEmailHTML(o, items) {
     ${headerHTML('New Order Received')}
     <div style="padding:24px;">
       <p style="font-size:14px;margin:0 0 16px 0;">
-        A new order has been placed on the FurniX storefront.
+        A new order has been placed on the Vesta storefront.
       </p>
 
       <table style="width:100%;font-size:13px;color:#333;margin-bottom:18px;border-collapse:collapse;">
@@ -425,7 +425,7 @@ async function sendOrderEmails({ order, items }) {
   }
 
   const pdfAttachment = pdfBuffer ? [{
-    filename: `FurniX-Invoice-${o.order_number}.pdf`,
+    filename: `Vesta-Invoice-${o.order_number}.pdf`,
     content: pdfBuffer,
     contentType: 'application/pdf',
   }] : [];

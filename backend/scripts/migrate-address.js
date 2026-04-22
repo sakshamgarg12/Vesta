@@ -28,7 +28,7 @@ async function addIfMissing(conn, db, table, column, ddl) {
 }
 
 async function run() {
-  const db = process.env.DB_NAME || 'furnix_db';
+  const db = process.env.DB_NAME || 'vesta_db';
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '3306', 10),

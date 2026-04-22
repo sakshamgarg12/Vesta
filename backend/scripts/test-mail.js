@@ -27,14 +27,14 @@ async function main() {
   console.log('[test-mail] SMTP verify OK');
 
   const info = await t.sendMail({
-    from: `"FurniX" <${process.env.MAIL_FROM || user}>`,
+    from: `"Vesta" <${process.env.MAIL_FROM || user}>`,
     to,
-    subject: 'FurniX SMTP test — you can delete this',
-    text: 'If you are reading this, Gmail SMTP is configured correctly for FurniX order emails.',
+    subject: 'Vesta SMTP test — you can delete this',
+    text: 'If you are reading this, Gmail SMTP is configured correctly for Vesta order emails.',
     html: `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;border:1px solid #EFEAE0;border-radius:8px">
-        <h2 style="color:#2D5A27;margin:0 0 8px 0">FurniX · SMTP is working</h2>
-        <p style="color:#6B6B6B;margin:0 0 16px 0;font-size:13px">If you are reading this, Gmail SMTP is configured correctly for FurniX order emails. You can delete this message.</p>
+        <h2 style="color:#2D5A27;margin:0 0 8px 0">Vesta · SMTP is working</h2>
+        <p style="color:#6B6B6B;margin:0 0 16px 0;font-size:13px">If you are reading this, Gmail SMTP is configured correctly for Vesta order emails. You can delete this message.</p>
         <hr style="border:none;border-top:1px solid #EFEAE0"/>
         <p style="font-size:12px;color:#6B6B6B;margin-top:16px">Sent from <code>${user}</code></p>
       </div>`,

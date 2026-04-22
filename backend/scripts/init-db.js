@@ -1,5 +1,5 @@
 /**
- * Initialise the FurniX database:
+ * Initialise the Vesta database:
  *   1. Creates the schema (tables).
  *   2. Seeds it with the product catalogue.
  *
@@ -17,7 +17,7 @@ async function run() {
   const port = parseInt(process.env.DB_PORT || '3306', 10);
   const user = process.env.DB_USER || 'root';
   const password = process.env.DB_PASSWORD || '';
-  const database = process.env.DB_NAME || 'furnix_db';
+  const database = process.env.DB_NAME || 'vesta_db';
 
   console.log(`[init-db] Connecting to ${user}@${host}:${port} ...`);
 

@@ -22,7 +22,7 @@
 
   // ---------- Guards ----------
   function ensureCartNotEmpty() {
-    if (FurnixCart.read().length === 0) {
+    if (VestaCart.read().length === 0) {
       document.querySelector('.container').innerHTML = `
         <div class="text-center py-5">
           <h2>Your cart is empty</h2>
@@ -754,28 +754,28 @@
 
   // ---------- Summary ----------
   function renderSummary() {
-    const items = FurnixCart.read();
-    const coupon = FurnixCart.getCoupon();
-    const totals = FurnixCart.computeTotals(items, coupon);
+    const items = VestaCart.read();
+    const coupon = VestaCart.getCoupon();
+    const totals = VestaCart.computeTotals(items, coupon);
 
     document.getElementById('summaryItems').innerHTML = items.map(i => `
       <div class="d-flex align-items-center gap-2 py-2 border-bottom" style="border-color:var(--line)!important">
         <img src="${i.image_url}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:4px" />
         <div class="flex-grow-1" style="min-width:0">
           <div style="font-weight:500; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escapeHTML(i.name)}</div>
-          <div class="small text-muted-soft">Qty ${i.qty} · ${FurnixCart.formatINR(i.price)}</div>
+          <div class="small text-muted-soft">Qty ${i.qty} · ${VestaCart.formatINR(i.price)}</div>
         </div>
-        <div style="font-weight:600; font-size:.9rem">${FurnixCart.formatINR(i.price * i.qty)}</div>
+        <div style="font-weight:600; font-size:.9rem">${VestaCart.formatINR(i.price * i.qty)}</div>
       </div>
     `).join('');
 
     document.getElementById('summaryTotals').innerHTML = `
-      <div class="summary-line"><span>Subtotal</span><span>${FurnixCart.formatINR(totals.subtotal)}</span></div>
+      <div class="summary-line"><span>Subtotal</span><span>${VestaCart.formatINR(totals.subtotal)}</span></div>
       ${totals.discount_amount > 0 ? `
-        <div class="summary-line discount"><span>Discount (${totals.discount_code})</span><span>− ${FurnixCart.formatINR(totals.discount_amount)}</span></div>` : ''}
-      <div class="summary-line"><span>GST (18%)</span><span>${FurnixCart.formatINR(totals.gst_amount)}</span></div>
-      <div class="summary-line"><span>Shipping${totals.shipping_fee === 0 ? ' <small class="text-forest">(Free)</small>' : ''}</span><span>${totals.shipping_fee === 0 ? '—' : FurnixCart.formatINR(totals.shipping_fee)}</span></div>
-      <div class="summary-line total"><span>Total</span><span>${FurnixCart.formatINR(totals.total)}</span></div>
+        <div class="summary-line discount"><span>Discount (${totals.discount_code})</span><span>− ${VestaCart.formatINR(totals.discount_amount)}</span></div>` : ''}
+      <div class="summary-line"><span>GST (18%)</span><span>${VestaCart.formatINR(totals.gst_amount)}</span></div>
+      <div class="summary-line"><span>Shipping${totals.shipping_fee === 0 ? ' <small class="text-forest">(Free)</small>' : ''}</span><span>${totals.shipping_fee === 0 ? '—' : VestaCart.formatINR(totals.shipping_fee)}</span></div>
+      <div class="summary-line total"><span>Total</span><span>${VestaCart.formatINR(totals.total)}</span></div>
     `;
 
     const input = document.getElementById('fxCouponInputCheckout');
@@ -798,8 +798,8 @@
   }
 
   function renderReview() {
-    const items = FurnixCart.read();
-    const totals = FurnixCart.computeTotals(items, FurnixCart.getCoupon());
+    const items = VestaCart.read();
+    const totals = VestaCart.computeTotals(items, VestaCart.getCoupon());
     const payLabel = { upi: 'UPI', card: 'Credit / Debit Card', netbanking: 'Net Banking', cod: 'Cash on Delivery' }[form.payment];
     const typeIcon = { home: '🏠 Home', office: '🏢 Office', other: '📍 Other' }[form.address_type] || 'Home';
     const geo = (form.latitude && form.longitude)
@@ -833,14 +833,14 @@
       ${items.map(i => `
         <div class="d-flex justify-content-between py-1">
           <span>${escapeHTML(i.name)} × ${i.qty}</span>
-          <span>${FurnixCart.formatINR(i.price * i.qty)}</span>
+          <span>${VestaCart.formatINR(i.price * i.qty)}</span>
         </div>`).join('')}
       <hr />
-      <div class="summary-line"><span>Subtotal</span><span>${FurnixCart.formatINR(totals.subtotal)}</span></div>
-      ${totals.discount_amount > 0 ? `<div class="summary-line discount"><span>Discount (${totals.discount_code})</span><span>− ${FurnixCart.formatINR(totals.discount_amount)}</span></div>` : ''}
-      <div class="summary-line"><span>GST (18%)</span><span>${FurnixCart.formatINR(totals.gst_amount)}</span></div>
-      <div class="summary-line"><span>Shipping</span><span>${totals.shipping_fee === 0 ? 'Free' : FurnixCart.formatINR(totals.shipping_fee)}</span></div>
-      <div class="summary-line total"><span>Total</span><span>${FurnixCart.formatINR(totals.total)}</span></div>
+      <div class="summary-line"><span>Subtotal</span><span>${VestaCart.formatINR(totals.subtotal)}</span></div>
+      ${totals.discount_amount > 0 ? `<div class="summary-line discount"><span>Discount (${totals.discount_code})</span><span>− ${VestaCart.formatINR(totals.discount_amount)}</span></div>` : ''}
+      <div class="summary-line"><span>GST (18%)</span><span>${VestaCart.formatINR(totals.gst_amount)}</span></div>
+      <div class="summary-line"><span>Shipping</span><span>${totals.shipping_fee === 0 ? 'Free' : VestaCart.formatINR(totals.shipping_fee)}</span></div>
+      <div class="summary-line total"><span>Total</span><span>${VestaCart.formatINR(totals.total)}</span></div>
     `;
   }
 
@@ -851,7 +851,7 @@
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Placing order...';
 
     try {
-      const items = FurnixCart.read().map(i => ({ product_id: i.id, quantity: i.qty }));
+      const items = VestaCart.read().map(i => ({ product_id: i.id, quantity: i.qty }));
       const payload = {
         customer: { name: form.name, email: form.email, phone: form.phone, alt_phone: form.alt_phone || null },
         shipping: {
@@ -871,16 +871,16 @@
         },
         delivery: { date: form.delivery_date, slot: form.delivery_slot },
         payment:  { method: form.payment, details: form.payment_details || null },
-        coupon_code: FurnixCart.getCoupon() || null,
+        coupon_code: VestaCart.getCoupon() || null,
         items,
         notes: form.notes,
       };
-      const res = await FurnixAPI.checkout(payload);
-      sessionStorage.setItem('furnix_last_order', JSON.stringify(res.order));
-      FurnixCart.clear();
+      const res = await VestaAPI.checkout(payload);
+      sessionStorage.setItem('vesta_last_order', JSON.stringify(res.order));
+      VestaCart.clear();
       location.href = `/success.html?order=${encodeURIComponent(res.order.order_number)}`;
     } catch (err) {
-      FurnixCart.toast(err.message || 'Could not place order', 'error');
+      VestaCart.toast(err.message || 'Could not place order', 'error');
       btn.disabled = false;
       btn.textContent = 'Place Order';
     }
@@ -973,18 +973,18 @@
     // Coupon in sidebar
     const cIn = document.getElementById('fxCouponInputCheckout');
     const cBtn = document.getElementById('fxCouponBtnCheckout');
-    cIn.value = FurnixCart.getCoupon();
+    cIn.value = VestaCart.getCoupon();
     cBtn.addEventListener('click', () => {
       const code = cIn.value.trim();
-      if (!code) { FurnixCart.setCoupon(''); renderSummary(); return; }
-      const subtotal = FurnixCart.read().reduce((s, i) => s + i.price * i.qty, 0);
-      const res = FurnixCart.applyCoupon(subtotal, code);
-      if (res.code) { FurnixCart.setCoupon(res.code); FurnixCart.toast(res.message, 'success'); }
-      else          { FurnixCart.setCoupon('');      FurnixCart.toast(res.message, 'error'); }
+      if (!code) { VestaCart.setCoupon(''); renderSummary(); return; }
+      const subtotal = VestaCart.read().reduce((s, i) => s + i.price * i.qty, 0);
+      const res = VestaCart.applyCoupon(subtotal, code);
+      if (res.code) { VestaCart.setCoupon(res.code); VestaCart.toast(res.message, 'success'); }
+      else          { VestaCart.setCoupon('');      VestaCart.toast(res.message, 'error'); }
       renderSummary();
     });
 
-    document.addEventListener('furnix:cart-updated', renderSummary);
+    document.addEventListener('vesta:cart-updated', renderSummary);
 
     renderSummary();
     showStep(1);

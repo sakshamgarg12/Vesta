@@ -1,9 +1,9 @@
 -- =====================================================
--- FurniX - Seed data (real product catalogue)
+-- Vesta - Seed data (real product catalogue)
 -- Run after schema.sql
 -- =====================================================
 
-USE furnix_db;
+USE vesta_db;
 
 TRUNCATE TABLE order_items;
 DELETE FROM orders;

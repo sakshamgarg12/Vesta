@@ -40,7 +40,7 @@
           </div>
           <div class="mb-3">
             <div class="small text-muted-soft text-uppercase" style="letter-spacing:.1em">Email</div>
-            <a href="mailto:contactFurniX@gmail.com">contactFurniX@gmail.com</a>
+            <a href="mailto:contactVesta@gmail.com">contactVesta@gmail.com</a>
           </div>
           <div class="mb-3">
             <div class="small text-muted-soft text-uppercase" style="letter-spacing:.1em">Phone</div>
@@ -96,9 +96,9 @@
 <div data-fx-footer></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/api.js"></script>
-<script src="/js/cart.js"></script>
-<script src="/js/layout.js"></script>
+<script src="/js/api.js?v=vesta1"></script>
+<script src="/js/cart.js?v=vesta1"></script>
+<script src="/js/layout.js?v=vesta1"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('queryForm');
@@ -108,11 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true;
     const data = Object.fromEntries(new FormData(form).entries());
     try {
-      const res = await FurnixAPI.submitQuery(data);
-      FurnixCart.toast(res.message || 'Message sent. Thank you!', 'success');
+      const res = await VestaAPI.submitQuery(data);
+      VestaCart.toast(res.message || 'Message sent. Thank you!', 'success');
       form.reset();
     } catch (err) {
-      FurnixCart.toast(err.message || 'Could not send message', 'error');
+      VestaCart.toast(err.message || 'Could not send message', 'error');
     } finally {
       btn.disabled = false;
     }

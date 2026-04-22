@@ -1,11 +1,11 @@
 /**
  * Central API client. Works whether the frontend is served by the
  * Express backend (same-origin) or by a separate static host
- * (set window.FURNIX_API_BASE before this script loads).
+ * (set window.VESTA_API_BASE before this script loads).
  */
 (function () {
   const DEFAULT_BASE =
-    (window.FURNIX_API_BASE && window.FURNIX_API_BASE.replace(/\/$/, '')) ||
+    (window.VESTA_API_BASE && window.VESTA_API_BASE.replace(/\/$/, '')) ||
     `${window.location.protocol}//${window.location.host}`;
 
   async function request(path, options = {}) {
@@ -24,7 +24,7 @@
     return data;
   }
 
-  window.FurnixAPI = {
+  window.VestaAPI = {
     base: DEFAULT_BASE,
 
     getProducts(params = {}) {
@@ -48,6 +48,13 @@
     submitQuery(payload) {
       return request('/api/queries', { method: 'POST', body: JSON.stringify(payload) });
     },
+
+    // --- AI Room Stylist ---
+    aiHealth() { return request('/api/ai/health'); },
+    aiSuggest(payload) {
+      return request('/api/ai/suggest', { method: 'POST', body: JSON.stringify(payload) });
+    },
+
     health() { return request('/api/health'); },
   };
 })();

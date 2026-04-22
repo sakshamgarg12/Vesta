@@ -1,13 +1,13 @@
 -- =====================================================
--- FurniX - Premium Wooden Furniture Store
+-- Vesta - Premium Wooden Furniture Store
 -- MySQL Schema
 -- =====================================================
 
-CREATE DATABASE IF NOT EXISTS furnix_db
+CREATE DATABASE IF NOT EXISTS vesta_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE furnix_db;
+USE vesta_db;
 
 -- ---------- Products ----------
 DROP TABLE IF EXISTS order_items;

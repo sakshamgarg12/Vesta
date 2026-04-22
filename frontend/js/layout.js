@@ -6,7 +6,7 @@
   const nav = `
     <nav class="fx-navbar">
       <div class="container d-flex align-items-center justify-content-between">
-        <a class="fx-brand" href="/">Furni<span>X</span></a>
+        <a class="fx-brand" href="/">Ves<span>ta</span></a>
 
         <button class="btn btn-ghost d-lg-none" type="button" id="fxMobileToggle" aria-label="Menu">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -18,6 +18,9 @@
           <a class="nav-link" href="/products.html?category=beds" data-nav="beds">Beds</a>
           <a class="nav-link" href="/products.html?category=sofas" data-nav="sofas">Sofas</a>
           <a class="nav-link" href="/products.html?category=tables" data-nav="tables">Tables</a>
+          <a class="nav-link" href="/ai-suggest.html" data-nav="ai">
+            <span class="ai-nav-pill">AI</span> Stylist
+          </a>
           <a class="nav-link" href="/track.html" data-nav="track">Track Order</a>
           <a class="nav-link" href="/contact.html" data-nav="contact">Contact</a>
         </div>
@@ -37,6 +40,7 @@
         <a class="nav-link" href="/products.html?category=beds">Beds</a>
         <a class="nav-link" href="/products.html?category=sofas">Sofas</a>
         <a class="nav-link" href="/products.html?category=tables">Tables</a>
+        <a class="nav-link" href="/ai-suggest.html"><span class="ai-nav-pill">AI</span> Stylist</a>
         <a class="nav-link" href="/track.html">Track Order</a>
         <a class="nav-link" href="/contact.html">Contact</a>
       </div>
@@ -68,6 +72,7 @@
             <h5>Company</h5>
             <ul class="list-unstyled">
               <li><a href="/contact.html">Contact</a></li>
+              <li><a href="/ai-suggest.html">AI Room Stylist</a></li>
               <li><a href="/track.html">Track Order</a></li>
               <li><a href="/contact.html">Bulk &amp; Trade</a></li>
               <li><a href="/contact.html">Custom Orders</a></li>
@@ -84,7 +89,7 @@
         </div>
         <hr />
         <div class="d-flex flex-wrap justify-content-between align-items-center">
-          <span class="small">© ${new Date().getFullYear()} FurniX. All rights reserved.</span>
+          <span class="small">© ${new Date().getFullYear()} Vesta. All rights reserved.</span>
           <span class="small">Crafted with solid-wood care.</span>
         </div>
       </div>

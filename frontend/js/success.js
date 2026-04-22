@@ -12,7 +12,7 @@
     if (!btn) return;
     if (order && order.order_number) {
       btn.href = `/api/orders/${encodeURIComponent(order.order_number)}/invoice.pdf`;
-      btn.setAttribute('download', `FurniX-Invoice-${order.order_number}.pdf`);
+      btn.setAttribute('download', `Vesta-Invoice-${order.order_number}.pdf`);
       btn.classList.remove('disabled');
     } else {
       btn.classList.add('disabled');
@@ -21,7 +21,7 @@
   }
 
   function buildWhatsAppURL(order) {
-    const store = (window.FURNIX_STORE_PHONE || order._store_phone || '').replace(/[^\d]/g, '');
+    const store = (window.VESTA_STORE_PHONE || order._store_phone || '').replace(/[^\d]/g, '');
     // Fallback: the store phone is in the footer, but if we can't find it, skip.
     if (!store) return null;
     const phone = store.startsWith('91') ? store : (store.length === 10 ? '91' + store : store);
@@ -36,7 +36,7 @@
     const pin  = order.shipping?.pincode || order.shipping_pincode || '';
     const lm   = order.shipping?.landmark || order.shipping_landmark || '—';
     const pinMsg = (lat != null && lng != null) ? `\nMy GPS pin: https://www.google.com/maps?q=${lat},${lng}` : '';
-    const msg = `Hi FurniX team, confirming my order ${order.order_number}.\nAddress: ${addr}, ${city} - ${pin}. Landmark: ${lm}.${pinMsg}`;
+    const msg = `Hi Vesta team, confirming my order ${order.order_number}.\nAddress: ${addr}, ${city} - ${pin}. Landmark: ${lm}.${pinMsg}`;
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   }
 
@@ -74,7 +74,7 @@
     const email = order.customer?.email || order.customer_email;
     if (!email) return; // tracking endpoint needs a contact
     try {
-      const { tracking } = await FurnixAPI.trackOrder(order.order_number, email);
+      const { tracking } = await VestaAPI.trackOrder(order.order_number, email);
       const eta = tracking.eta_days;
       let etaLine = '';
       if (tracking.current_status === 'delivered') {
@@ -161,7 +161,7 @@
     el.innerHTML = `
       <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-          <div style="font-family:var(--font-serif); font-size:1.6rem; font-weight:600">FurniX</div>
+          <div style="font-family:var(--font-serif); font-size:1.6rem; font-weight:600">Vesta</div>
           <div class="small text-muted-soft">Heirloom wooden furniture</div>
         </div>
         <div class="text-end small">
@@ -209,8 +209,8 @@
                   <div class="small text-muted-soft">${escapeHTML(i.wood_type || '')}</div>
                 </td>
                 <td class="text-center">${i.quantity}</td>
-                <td class="text-end">${FurnixCart.formatINR(Number(i.unit_price))}</td>
-                <td class="text-end">${FurnixCart.formatINR(Number(i.line_total))}</td>
+                <td class="text-end">${VestaCart.formatINR(Number(i.unit_price))}</td>
+                <td class="text-end">${VestaCart.formatINR(Number(i.line_total))}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -218,44 +218,44 @@
 
       <div class="row">
         <div class="col-md-6 ms-auto">
-          <div class="summary-line"><span>Subtotal</span><span>${FurnixCart.formatINR(Number(order.subtotal))}</span></div>
+          <div class="summary-line"><span>Subtotal</span><span>${VestaCart.formatINR(Number(order.subtotal))}</span></div>
           ${Number(order.discount_amount) > 0 ? `
             <div class="summary-line discount">
               <span>Discount (${escapeHTML(order.discount_code || '')})</span>
-              <span>− ${FurnixCart.formatINR(Number(order.discount_amount))}</span>
+              <span>− ${VestaCart.formatINR(Number(order.discount_amount))}</span>
             </div>` : ''}
-          <div class="summary-line"><span>GST (18%)</span><span>${FurnixCart.formatINR(Number(order.gst_amount))}</span></div>
-          <div class="summary-line"><span>Shipping</span><span>${Number(order.shipping_fee) === 0 ? 'Free' : FurnixCart.formatINR(Number(order.shipping_fee))}</span></div>
-          <div class="summary-line total"><span>Total</span><span>${FurnixCart.formatINR(Number(order.total))}</span></div>
+          <div class="summary-line"><span>GST (18%)</span><span>${VestaCart.formatINR(Number(order.gst_amount))}</span></div>
+          <div class="summary-line"><span>Shipping</span><span>${Number(order.shipping_fee) === 0 ? 'Free' : VestaCart.formatINR(Number(order.shipping_fee))}</span></div>
+          <div class="summary-line total"><span>Total</span><span>${VestaCart.formatINR(Number(order.total))}</span></div>
         </div>
       </div>
 
       <hr class="mt-4" />
       <div class="small text-muted-soft">
-        Questions? Email <a href="mailto:contactFurniX@gmail.com">contactFurniX@gmail.com</a> or call +91 75837 77875.
-        Keep this receipt for your records — FurniX GSTIN will be printed on the invoice shipped with your order.
+        Questions? Email <a href="mailto:contactVesta@gmail.com">contactVesta@gmail.com</a> or call +91 75837 77875.
+        Keep this receipt for your records — Vesta GSTIN will be printed on the invoice shipped with your order.
       </div>
     `;
   }
 
   async function loadStorePhone() {
-    if (window.FURNIX_STORE_PHONE) return;
+    if (window.VESTA_STORE_PHONE) return;
     try {
       const r = await fetch('/api/health', { cache: 'no-store' });
       const j = await r.json();
-      if (j?.store?.phone) window.FURNIX_STORE_PHONE = j.store.phone;
+      if (j?.store?.phone) window.VESTA_STORE_PHONE = j.store.phone;
     } catch (_) { /* ignore */ }
   }
 
   async function load() {
     const orderNumber = new URLSearchParams(location.search).get('order');
-    const cached = sessionStorage.getItem('furnix_last_order');
+    const cached = sessionStorage.getItem('vesta_last_order');
 
     await loadStorePhone();
 
     try {
       if (orderNumber) {
-        const { order, items } = await FurnixAPI.getOrder(orderNumber);
+        const { order, items } = await VestaAPI.getOrder(orderNumber);
         renderReceipt(order, items);
         return;
       }

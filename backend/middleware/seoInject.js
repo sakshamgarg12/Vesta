@@ -134,7 +134,7 @@ async function buildSeoForRequest(req) {
       title: `${STORE_NAME} — Premium Hand-crafted Solid Wood Furniture in India`,
       description: `Heirloom wooden furniture hand-crafted from solid Teak, Sheesham and Mango wood. Beds, sofas, tables and storage with 10-year frame warranty. Free shipping over ₹25,000.`,
       canonical: `${siteUrl}/`,
-      keywords: 'wooden furniture, solid wood furniture India, teak furniture, sheesham furniture, premium furniture, FurniX',
+      keywords: 'wooden furniture, solid wood furniture India, teak furniture, sheesham furniture, premium furniture, Vesta',
       jsonLd: [
         orgJsonLd(siteUrl),
         websiteJsonLd(siteUrl),

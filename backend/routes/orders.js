@@ -534,7 +534,7 @@ router.get('/orders/:orderNumber/invoice.pdf', async (req, res, next) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `${disposition}; filename="FurniX-Invoice-${orders[0].order_number}.pdf"`,
+      `${disposition}; filename="Vesta-Invoice-${orders[0].order_number}.pdf"`,
     );
     res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.send(pdf);

@@ -1,7 +1,7 @@
 {
-  "name": "furnix-backend",
+  "name": "vesta-backend",
   "version": "1.0.0",
-  "description": "FurniX - Premium Wooden Furniture E-commerce Backend",
+  "description": "Vesta - Premium Wooden Furniture E-commerce Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,6 +10,7 @@
     "migrate-address": "node scripts/migrate-address.js",
     "migrate-payment": "node scripts/migrate-payment.js",
     "migrate-status": "node scripts/migrate-status.js",
+    "migrate-db-name": "node scripts/migrate-db-name.js",
     "test-mail": "node scripts/test-mail.js"
   },
   "keywords": [
@@ -19,9 +20,10 @@
     "express",
     "mysql"
   ],
-  "author": "FurniX",
+  "author": "Vesta",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",

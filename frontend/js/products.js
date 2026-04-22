@@ -38,15 +38,15 @@
             ${p.is_featured ? '<span class="featured-badge">Featured</span>' : ''}
             <a href="/product.html?slug=${encodeURIComponent(p.slug)}">
               <img src="${p.image_url}" alt="${escapeHTML(p.name)}" loading="lazy"
-                   onerror="this.src='https://via.placeholder.com/600x450?text=FurniX'"/>
+                   onerror="this.src='https://via.placeholder.com/600x450?text=Vesta'"/>
             </a>
           </div>
           <div class="body">
             <span class="wood-chip">${escapeHTML(p.wood_type)}</span>
             <h3 class="name">${escapeHTML(p.name)}</h3>
             <div class="price">
-              ${FurnixCart.formatINR(p.price)}
-              ${mrp ? `<span class="mrp">${FurnixCart.formatINR(mrp)}</span>` : ''}
+              ${VestaCart.formatINR(p.price)}
+              ${mrp ? `<span class="mrp">${VestaCart.formatINR(mrp)}</span>` : ''}
               ${off ? `<span class="off">${off}% off</span>` : ''}
             </div>
             <a class="btn btn-outline-forest" href="/product.html?slug=${encodeURIComponent(p.slug)}">View Details</a>
@@ -119,7 +119,7 @@
       if (state.search)   params.search = state.search;
       if (state.featured) params.featured = 1;
 
-      const { products, count } = await FurnixAPI.getProducts(params);
+      const { products, count } = await VestaAPI.getProducts(params);
       if (!products.length) {
         grid.innerHTML = '';
         emptyEl.style.display = 'block';

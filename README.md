@@ -1,4 +1,4 @@
-# FurniX — Premium Wooden Furniture Store
+# Vesta — Premium Wooden Furniture Store
 
 A full-stack, production-ready e-commerce application for a premium wooden
 furniture business. Built with **Node.js + Express + MySQL** on the backend
@@ -69,8 +69,8 @@ WOOD MENIA/
 │  ├─ 404.html
 │  ├─ css/style.css
 │  └─ js/
-│     ├─ api.js            # Fetch wrapper (window.FurnixAPI)
-│     ├─ cart.js           # Cart + drawer + coupon + toast (window.FurnixCart)
+│     ├─ api.js            # Fetch wrapper (window.VestaAPI)
+│     ├─ cart.js           # Cart + drawer + coupon + toast (window.VestaCart)
 │     ├─ layout.js         # Shared navbar + footer injection
 │     ├─ home.js
 │     ├─ products.js
@@ -103,7 +103,7 @@ npm install
 cp .env.example .env        # on Windows: copy .env.example .env
 # then edit .env and set DB_PASSWORD, CORS_ORIGIN etc.
 
-# 3. Create schema + seed the catalogue (creates `furnix_db`)
+# 3. Create schema + seed the catalogue (creates `vesta_db`)
 npm run init-db
 
 # 4. Start the server
@@ -119,7 +119,7 @@ live.
 > If you prefer to develop the frontend on its own static host
 > (e.g. VS Code Live Server on port 5500), edit `.env` so that
 > `CORS_ORIGIN` includes `http://127.0.0.1:5500`, and in each HTML
-> page add `<script>window.FURNIX_API_BASE="http://localhost:5000"</script>`
+> page add `<script>window.VESTA_API_BASE="http://localhost:5000"</script>`
 > before `js/api.js`.
 
 ---
@@ -133,7 +133,7 @@ live.
 | `CORS_ORIGIN`             | `http://localhost:5000,https://mystore.com`          | Comma-separated list. `*` means any origin (dev only).        |
 | `DB_HOST` / `DB_PORT`     | `localhost` / `3306`                                 |                                                               |
 | `DB_USER` / `DB_PASSWORD` | `root` / `...`                                       |                                                               |
-| `DB_NAME`                 | `furnix_db`                                          | Created automatically by `npm run init-db`.                   |
+| `DB_NAME`                 | `vesta_db`                                           | Created automatically by `npm run init-db`.                   |
 | `GST_RATE`                | `0.18`                                               | Indian GST for furniture.                                     |
 | `SHIPPING_FEE`            | `499`                                                | Flat fee when below threshold.                                |
 | `FREE_SHIPPING_THRESHOLD` | `25000`                                              | Subtotal at or above which shipping is free.                  |
@@ -151,20 +151,20 @@ sudo apt update && sudo apt install -y nodejs npm mysql-server nginx
 sudo npm i -g pm2
 
 # Clone & install
-git clone <your-repo-url> /opt/furnix && cd /opt/furnix/backend
+git clone <your-repo-url> /opt/vesta && cd /opt/vesta/backend
 cp .env.example .env && nano .env    # set real DB credentials & CORS_ORIGIN
 
 # MySQL: create user (optional)
-sudo mysql -e "CREATE USER 'furnix'@'localhost' IDENTIFIED BY 'StrongPass!';
-               GRANT ALL PRIVILEGES ON furnix_db.* TO 'furnix'@'localhost';"
+sudo mysql -e "CREATE USER 'vesta'@'localhost' IDENTIFIED BY 'StrongPass!';
+               GRANT ALL PRIVILEGES ON vesta_db.* TO 'vesta'@'localhost';"
 
 npm ci
 npm run init-db
-pm2 start server.js --name furnix
+pm2 start server.js --name vesta
 pm2 save && pm2 startup
 ```
 
-Minimal Nginx config (`/etc/nginx/sites-available/furnix`):
+Minimal Nginx config (`/etc/nginx/sites-available/vesta`):
 
 ```nginx
 server {
@@ -218,7 +218,7 @@ services:
     image: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: furnix_db
+      MYSQL_DATABASE: vesta_db
     volumes: [ "dbdata:/var/lib/mysql" ]
   web:
     build: .
@@ -244,7 +244,7 @@ volumes:
 
 ## 4b · Built-in SEO
 
-FurniX ships with production-grade SEO out of the box. You do **not** need to touch any HTML to get it — the server rewrites the `<head>` on every page request.
+Vesta ships with production-grade SEO out of the box. You do **not** need to touch any HTML to get it — the server rewrites the `<head>` on every page request.
 
 ### What you get
 - **Server-rendered `<title>` and `<meta description>`** unique to each page (homepage, every category, every single product, contact) — this is what Google actually indexes.
@@ -273,7 +273,7 @@ curl -s https://your-domain.com/product.html?slug=aranya-teak-king-bed | grep -E
 
 1. **Set `SITE_URL`** in your production `.env`:
    ```
-   SITE_URL=https://www.furnix.store
+   SITE_URL=https://www.vesta.store
    ```
    This is what goes into canonical tags and the sitemap. Restart the server.
 
@@ -287,7 +287,7 @@ curl -s https://your-domain.com/product.html?slug=aranya-teak-king-bed | grep -E
    - Add your site, verify, and submit the same sitemap. (Bing powers DuckDuckGo and Yahoo, so one submit covers three engines.)
 
 4. **Google Business Profile** (huge for local search) — <https://business.google.com>
-   - Create a free profile for FurniX with your workshop address, phone and website. This is what makes you show up in Google Maps and the "knowledge panel" on the right of search results.
+   - Create a free profile for Vesta with your workshop address, phone and website. This is what makes you show up in Google Maps and the "knowledge panel" on the right of search results.
 
 ### Validators
 - Rich results test — <https://search.google.com/test/rich-results?url=https://your-domain.com/product.html?slug=aranya-teak-king-bed>
@@ -368,7 +368,7 @@ npm run migrate-status
 
 ## 6 · Security notes for production
 
-- **Use a dedicated DB user** with only `SELECT / INSERT / UPDATE / DELETE` on `furnix_db`.
+- **Use a dedicated DB user** with only `SELECT / INSERT / UPDATE / DELETE` on `vesta_db`.
 - **Rotate `DB_PASSWORD`** and never commit `.env`.
 - **Restrict CORS** to your production domains.
 - **Put the server behind HTTPS** (Nginx + Let's Encrypt, Cloudflare, etc.).

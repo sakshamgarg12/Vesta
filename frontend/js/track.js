@@ -14,7 +14,7 @@
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[c]));
   }
-  function fmtINR(n) { return (window.FurnixCart && FurnixCart.formatINR) ? FurnixCart.formatINR(Number(n)) : '₹' + Number(n).toLocaleString('en-IN'); }
+  function fmtINR(n) { return (window.VestaCart && VestaCart.formatINR) ? VestaCart.formatINR(Number(n)) : '₹' + Number(n).toLocaleString('en-IN'); }
   function fmtDate(d) {
     if (!d) return '—';
     const dt = new Date(d);
@@ -122,7 +122,7 @@
     const oldLabel = btn.innerHTML;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Looking up…';
     try {
-      const { tracking } = await FurnixAPI.trackOrder(orderNumber, contact);
+      const { tracking } = await VestaAPI.trackOrder(orderNumber, contact);
       render(tracking);
     } catch (err) {
       showError(err.message || 'Could not find that order.');

@@ -1,5 +1,5 @@
 /**
- * FurniX — Premium Wooden Furniture Store
+ * Vesta — Premium Wooden Furniture Store
  * Express server (static frontend + REST API)
  */
 
@@ -16,6 +16,7 @@ const { testConnection } = require('./db');
 const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const queriesRouter = require('./routes/queries');
+const aiRouter = require('./routes/ai');
 const seoRouter = require('./routes/seo');
 const { seoInjector } = require('./middleware/seoInject');
 
@@ -34,7 +35,9 @@ const corsOrigins = (process.env.CORS_ORIGIN || '*')
 app.use(cors({ origin: corsOrigins.includes('*') ? true : corsOrigins }));
 
 app.use(compression());
-app.use(express.json({ limit: '1mb' }));
+// 6mb covers a ~4 MB base64-encoded image plus the surrounding JSON payload
+// used by the AI Room Stylist. Regular API payloads are far smaller.
+app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
@@ -56,11 +59,11 @@ const writeLimiter = rateLimit({
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
-    service: 'FurniX API',
+    service: 'Vesta API',
     time: new Date().toISOString(),
     store: {
-      name: process.env.STORE_NAME || 'FurniX',
-      email: process.env.STORE_EMAIL || 'contactFurniX@gmail.com',
+      name: process.env.STORE_NAME || 'Vesta',
+      email: process.env.STORE_EMAIL || 'contactVesta@gmail.com',
       phone: process.env.STORE_PHONE || '+91-7583777875',
     },
   });
@@ -70,6 +73,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/products', productsRouter);
 app.use('/api', writeLimiter, ordersRouter); // /api/checkout + /api/coupons/validate + /api/orders/:n
 app.use('/api/queries', writeLimiter, queriesRouter);
+app.use('/api/ai', aiRouter); // /api/ai/suggest (Gemini-powered room stylist)
 
 // ------------------ SEO ------------------
 // Must come BEFORE express.static so /sitemap.xml and /robots.txt are dynamic.
@@ -123,7 +127,7 @@ app.use((err, _req, res, _next) => {
   }
   app.listen(PORT, () => {
     console.log('\n====================================================');
-    console.log(`  FurniX store running at  http://localhost:${PORT}`);
+    console.log(`  Vesta store running at  http://localhost:${PORT}`);
     console.log(`  API health check:         http://localhost:${PORT}/api/health`);
     console.log('====================================================\n');
   });

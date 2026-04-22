@@ -7,8 +7,8 @@
  * runs. This is critical for ranking product and category pages.
  */
 
-const STORE_NAME = process.env.STORE_NAME || 'FurniX';
-const STORE_EMAIL = process.env.STORE_EMAIL || 'contactFurniX@gmail.com';
+const STORE_NAME = process.env.STORE_NAME || 'Vesta';
+const STORE_EMAIL = process.env.STORE_EMAIL || 'contactVesta@gmail.com';
 const STORE_PHONE = process.env.STORE_PHONE || '+91-7583777875';
 
 function getSiteUrl(req) {
@@ -26,27 +26,27 @@ function escAttr(s) {
 
 const CATEGORY_META = {
   beds: {
-    title: 'Solid Wood Beds — Teak, Sheesham & Mango | FurniX',
+    title: 'Solid Wood Beds — Teak, Sheesham & Mango | Vesta',
     desc:  'Shop hand-crafted solid wood beds — king, queen and single sizes in Teak, Sheesham and Mango. 10-year frame warranty and free delivery over ₹25,000.',
     h1:    'Beds',
   },
   sofas: {
-    title: 'Wooden Frame Sofas & Loveseats | FurniX',
+    title: 'Wooden Frame Sofas & Loveseats | Vesta',
     desc:  'Exposed solid-wood sofa frames with hand-tufted upholstery. 2-seater, 3-seater and L-shape sectionals in Teak, Sheesham and Mango wood.',
     h1:    'Sofas',
   },
   tables: {
-    title: 'Wooden Dining, Coffee & Study Tables | FurniX',
+    title: 'Wooden Dining, Coffee & Study Tables | Vesta',
     desc:  'Live-edge dining tables, modern coffee tables and work-from-home desks in solid Teak, Sheesham and Mango. Hand-finished in India.',
     h1:    'Tables',
   },
   chairs: {
-    title: 'Dining & Accent Chairs in Solid Wood | FurniX',
+    title: 'Dining & Accent Chairs in Solid Wood | Vesta',
     desc:  'Hand-crafted dining and accent chairs with woven cane, boucle and linen upholstery. Solid Teak and Sheesham frames.',
     h1:    'Chairs',
   },
   storage: {
-    title: 'Wardrobes, Bookshelves & Storage in Solid Wood | FurniX',
+    title: 'Wardrobes, Bookshelves & Storage in Solid Wood | Vesta',
     desc:  'Heirloom-grade wardrobes and open-back bookshelves crafted from solid Teak and Sheesham, with soft-close hinges and cedar-lined drawers.',
     h1:    'Storage',
   },
@@ -68,7 +68,7 @@ function buildSeoHead({
 }) {
   const finalTitle = title || `${STORE_NAME} — Premium Hand-crafted Wooden Furniture`;
   const finalDesc = description ||
-    'FurniX — heirloom-grade wooden furniture built from solid Teak, Sheesham and Mango wood. Beds, sofas, tables, chairs and storage with 10-year warranty.';
+    'Vesta — heirloom-grade wooden furniture built from solid Teak, Sheesham and Mango wood. Beds, sofas, tables, chairs and storage with 10-year warranty.';
   const finalImg = ogImage ||
     'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=1200&q=85';
 
