@@ -1,0 +1,14 @@
+{
+  "name": "FurniX — Premium Wooden Furniture",
+  "short_name": "FurniX",
+  "description": "Heirloom-grade wooden furniture hand-crafted from solid Teak, Sheesham and Mango wood.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9F7F2",
+  "theme_color": "#2D5A27",
+  "lang": "en-IN",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
