@@ -102,6 +102,9 @@
     if (state.featured) params.set('featured', state.featured);
     const qs = params.toString();
     history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+    if (window.VestaLayout && typeof window.VestaLayout.refreshActiveNav === 'function') {
+      window.VestaLayout.refreshActiveNav();
+    }
   }
 
   async function load() {

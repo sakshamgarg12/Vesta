@@ -45,7 +45,7 @@
   </div>
 </section>
 
-<!-- ============== CATEGORIES ============== -->
+<!-- ============== CATEGORIES (Magazine Layout) ============== -->
 <section class="section bg-cream">
   <div class="container">
     <div class="text-center mb-5">
@@ -53,34 +53,71 @@
       <h2>Pieces for every room</h2>
       <div class="divider mx-auto"></div>
     </div>
-    <div class="row g-4">
-      <div class="col-md-4">
-        <a class="cat-tile d-block" href="/products.html?category=beds">
-          <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1000&q=80" alt="Beds" />
-          <div class="label">
-            <h3>Beds</h3>
-            <span class="arrow">→</span>
+
+    <div class="cat-magazine" id="catMagazine">
+      <a class="cat-card cat-card--hero" href="/products.html?category=beds" data-cat="beds">
+        <div class="cat-card__bg" style="background-image:url('https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1400&q=85')"></div>
+        <div class="cat-card__grad"></div>
+        <div class="cat-card__body">
+          <span class="cat-card__eyebrow">Heirloom Beds</span>
+          <h3 class="cat-card__title">Beds</h3>
+          <p class="cat-card__desc">Hand-carved frames in Teak and Sheesham, built to outlast generations.</p>
+          <div class="cat-card__meta">
+            <span data-meta="count">—</span>
+            <span class="dot">·</span>
+            <span data-meta="price">Crafted to order</span>
           </div>
-        </a>
-      </div>
-      <div class="col-md-4">
-        <a class="cat-tile d-block" href="/products.html?category=sofas">
-          <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1000&q=80" alt="Sofas" />
-          <div class="label">
-            <h3>Sofas</h3>
-            <span class="arrow">→</span>
+          <span class="cat-card__cta">Shop Beds <span class="arrow">→</span></span>
+        </div>
+      </a>
+
+      <a class="cat-card cat-card--a" href="/products.html?category=sofas" data-cat="sofas">
+        <div class="cat-card__bg" style="background-image:url('https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=900&q=85')"></div>
+        <div class="cat-card__grad"></div>
+        <div class="cat-card__body">
+          <h3 class="cat-card__title cat-card__title--sm">Sofas</h3>
+          <div class="cat-card__meta">
+            <span data-meta="count">—</span>
           </div>
-        </a>
-      </div>
-      <div class="col-md-4">
-        <a class="cat-tile d-block" href="/products.html?category=tables">
-          <img src="https://images.unsplash.com/photo-1617806118233-18e1de247200?w=1000&q=80" alt="Tables" />
-          <div class="label">
-            <h3>Tables</h3>
-            <span class="arrow">→</span>
+          <span class="cat-card__cta cat-card__cta--sm">Shop <span class="arrow">→</span></span>
+        </div>
+      </a>
+
+      <a class="cat-card cat-card--b" href="/products.html?category=tables" data-cat="tables">
+        <div class="cat-card__bg" style="background-image:url('https://images.unsplash.com/photo-1577140917170-285929fb55b7?w=900&q=85')"></div>
+        <div class="cat-card__grad"></div>
+        <div class="cat-card__body">
+          <h3 class="cat-card__title cat-card__title--sm">Tables</h3>
+          <div class="cat-card__meta">
+            <span data-meta="count">—</span>
           </div>
-        </a>
-      </div>
+          <span class="cat-card__cta cat-card__cta--sm">Shop <span class="arrow">→</span></span>
+        </div>
+      </a>
+
+      <a class="cat-card cat-card--c" href="/products.html?category=chairs" data-cat="chairs">
+        <div class="cat-card__bg" style="background-image:url('https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=900&q=85')"></div>
+        <div class="cat-card__grad"></div>
+        <div class="cat-card__body">
+          <h3 class="cat-card__title cat-card__title--sm">Chairs</h3>
+          <div class="cat-card__meta">
+            <span data-meta="count">—</span>
+          </div>
+          <span class="cat-card__cta cat-card__cta--sm">Shop <span class="arrow">→</span></span>
+        </div>
+      </a>
+
+      <a class="cat-card cat-card--d" href="/products.html?category=storage" data-cat="storage">
+        <div class="cat-card__bg" style="background-image:url('https://images.unsplash.com/photo-1594620302200-9a762244a156?w=900&q=85')"></div>
+        <div class="cat-card__grad"></div>
+        <div class="cat-card__body">
+          <h3 class="cat-card__title cat-card__title--sm">Storage</h3>
+          <div class="cat-card__meta">
+            <span data-meta="count">—</span>
+          </div>
+          <span class="cat-card__cta cat-card__cta--sm">Shop <span class="arrow">→</span></span>
+        </div>
+      </a>
     </div>
   </div>
 </section>
@@ -101,31 +138,6 @@
       <div class="col-sm-6 col-lg-3"><div class="product-card"><div class="skeleton" style="aspect-ratio:4/3"></div><div class="body"><div class="skeleton" style="height:14px;width:40%;margin-bottom:.5rem"></div><div class="skeleton" style="height:20px;width:80%;margin-bottom:.5rem"></div><div class="skeleton" style="height:18px;width:50%;margin-bottom:1rem"></div><div class="skeleton" style="height:38px;width:100%"></div></div></div></div>
       <div class="col-sm-6 col-lg-3"><div class="product-card"><div class="skeleton" style="aspect-ratio:4/3"></div><div class="body"><div class="skeleton" style="height:14px;width:40%;margin-bottom:.5rem"></div><div class="skeleton" style="height:20px;width:80%;margin-bottom:.5rem"></div><div class="skeleton" style="height:18px;width:50%;margin-bottom:1rem"></div><div class="skeleton" style="height:38px;width:100%"></div></div></div></div>
       <div class="col-sm-6 col-lg-3"><div class="product-card"><div class="skeleton" style="aspect-ratio:4/3"></div><div class="body"><div class="skeleton" style="height:14px;width:40%;margin-bottom:.5rem"></div><div class="skeleton" style="height:20px;width:80%;margin-bottom:.5rem"></div><div class="skeleton" style="height:18px;width:50%;margin-bottom:1rem"></div><div class="skeleton" style="height:38px;width:100%"></div></div></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============== AI STYLIST CTA ============== -->
-<section class="section">
-  <div class="container">
-    <div class="ai-home-cta">
-      <div class="row align-items-center g-4 position-relative" style="z-index:1">
-        <div class="col-lg-8">
-          <span class="ai-badge">New · AI Stylist</span>
-          <h2>See it in your room — before you buy</h2>
-          <p class="mb-4" style="color:rgba(255,255,255,.9); max-width:620px;">
-            Snap a photo of your space and our AI stylist hand-picks the Vesta pieces
-            that match your light, colours and style — with a reason for every pick.
-            Free, instant, no sign-up.
-          </p>
-          <a href="/ai-suggest.html" class="btn-cta">
-            🪄 Try the AI Stylist →
-          </a>
-        </div>
-        <div class="col-lg-4 text-center d-none d-lg-block">
-          <div style="font-size:9rem; line-height:1; filter:drop-shadow(0 8px 20px rgba(0,0,0,.2));">📸</div>
-        </div>
-      </div>
     </div>
   </div>
 </section>
@@ -182,6 +194,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/api.js?v=vesta1"></script>
+<script src="/js/auth.js?v=vesta1"></script>
 <script src="/js/cart.js?v=vesta1"></script>
 <script src="/js/layout.js?v=vesta1"></script>
 <script src="/js/home.js?v=vesta1"></script>

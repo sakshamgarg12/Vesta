@@ -11,6 +11,7 @@
   async function request(path, options = {}) {
     const url = `${DEFAULT_BASE}${path}`;
     const res = await fetch(url, {
+      credentials: 'include', // httpOnly session cookie (Google sign-in)
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
       ...options,
     });
@@ -41,18 +42,12 @@
       return request('/api/checkout', { method: 'POST', body: JSON.stringify(payload) });
     },
     getOrder(orderNumber) { return request(`/api/orders/${encodeURIComponent(orderNumber)}`); },
-    trackOrder(orderNumber, contact) {
-      const q = new URLSearchParams({ order: orderNumber, contact }).toString();
+    trackOrder(orderNumber) {
+      const q = new URLSearchParams({ order: orderNumber }).toString();
       return request(`/api/track?${q}`);
     },
     submitQuery(payload) {
       return request('/api/queries', { method: 'POST', body: JSON.stringify(payload) });
-    },
-
-    // --- AI Room Stylist ---
-    aiHealth() { return request('/api/ai/health'); },
-    aiSuggest(payload) {
-      return request('/api/ai/suggest', { method: 'POST', body: JSON.stringify(payload) });
     },
 
     health() { return request('/api/health'); },

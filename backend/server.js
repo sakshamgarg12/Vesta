@@ -10,15 +10,19 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const { testConnection } = require('./db');
 const productsRouter = require('./routes/products');
 const ordersRouter = require('./routes/orders');
 const queriesRouter = require('./routes/queries');
-const aiRouter = require('./routes/ai');
+const chatRouter = require('./routes/chat');
+const authRouter = require('./routes/auth');
 const seoRouter = require('./routes/seo');
 const { seoInjector } = require('./middleware/seoInject');
+const { attachUser } = require('./middleware/auth');
+const { initRAG } = require('./utils/rag');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -35,11 +39,14 @@ const corsOrigins = (process.env.CORS_ORIGIN || '*')
 app.use(cors({ origin: corsOrigins.includes('*') ? true : corsOrigins }));
 
 app.use(compression());
-// 6mb covers a ~4 MB base64-encoded image plus the surrounding JSON payload
-// used by the AI Room Stylist. Regular API payloads are far smaller.
-app.use(express.json({ limit: '6mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(morgan('dev'));
+
+// Decode the session cookie (if any) and hang the user onto every request.
+// Individual routes use `requireLogin` / `requireAdmin` to gate access.
+app.use(attachUser);
 
 // Behind a reverse proxy (Nginx / Cloudflare / Render), trust X-Forwarded-* headers.
 app.set('trust proxy', 1);
@@ -70,10 +77,11 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ------------------ API ------------------
+app.use('/api/auth', authRouter); // Google Sign-In (no write-limiter: has its own limiter)
 app.use('/api/products', productsRouter);
 app.use('/api', writeLimiter, ordersRouter); // /api/checkout + /api/coupons/validate + /api/orders/:n
 app.use('/api/queries', writeLimiter, queriesRouter);
-app.use('/api/ai', aiRouter); // /api/ai/suggest (Gemini-powered room stylist)
+app.use('/api/chat', chatRouter); // Smart Chatbot (Groq + local RAG)
 
 // ------------------ SEO ------------------
 // Must come BEFORE express.static so /sitemap.xml and /robots.txt are dynamic.
@@ -130,5 +138,23 @@ app.use((err, _req, res, _next) => {
     console.log(`  Vesta store running at  http://localhost:${PORT}`);
     console.log(`  API health check:         http://localhost:${PORT}/api/health`);
     console.log('====================================================\n');
+
+    // Friendly warnings for the most common auth misconfigurations.
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      console.warn('[auth] GOOGLE_CLIENT_ID is not set. Customer sign-in + admin panel are DISABLED.');
+      console.warn('       See GOOGLE_OAUTH_SETUP.md for a 10-minute setup walkthrough.');
+    }
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.trim().length < 16) {
+      console.warn('[auth] SESSION_SECRET is missing or too short. Logins will fail until you set it.');
+      console.warn('       Generate one:  node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
+    }
+    if (!process.env.ADMIN_EMAILS) {
+      console.warn('[auth] ADMIN_EMAILS is empty. Nobody can access /admin.html yet.');
+    }
   });
+  // Warm the RAG index in the background (don't block boot). Only if the
+  // chatbot is configured — otherwise the index just sits idle.
+  if (process.env.GROQ_API_KEY && ok) {
+    initRAG().catch(err => console.warn('[rag] warm-up failed:', err.message));
+  }
 })();

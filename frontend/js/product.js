@@ -79,15 +79,6 @@
             <button class="btn btn-outline-forest" id="buyNowBtn" ${p.stock <= 0 ? 'disabled' : ''}>Buy Now</button>
           </div>
 
-          <div class="mb-3">
-            <a href="/ai-suggest.html?category=${encodeURIComponent(p.category)}" class="ai-try-button">
-              🪄 Try this in your room — AI Stylist
-            </a>
-            <div class="small text-muted-soft mt-1">
-              Snap a photo of your space to see which Vesta pieces fit best.
-            </div>
-          </div>
-
           <ul class="list-unstyled small text-muted-soft mt-4">
             <li>✓ Free white-glove delivery on orders above ₹25,000</li>
             <li>✓ 10-year frame warranty · hand-crafted joinery</li>
@@ -123,7 +114,14 @@
     });
     shell.querySelector('#buyNowBtn').addEventListener('click', () => {
       VestaCart.add(p, parseInt(qtyIn.value, 10) || 1);
-      location.href = '/checkout.html';
+      if (window.VestaAuth) {
+        VestaAuth.whoami().then(() => {
+          if (VestaAuth.getUser()) location.href = '/checkout.html';
+          else VestaAuth.requireLogin('/checkout.html');
+        });
+      } else {
+        location.href = '/checkout.html';
+      }
     });
 
     loadRelated(p);

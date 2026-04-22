@@ -193,7 +193,7 @@
       <div class="summary-line"><span>Shipping${totals.shipping_fee === 0 ? ' <small class="text-forest">(Free)</small>' : ''}</span><span>${totals.shipping_fee === 0 ? '—' : formatINR(totals.shipping_fee)}</span></div>
       <div class="summary-line total"><span>Total</span><span>${formatINR(totals.total)}</span></div>
 
-      <a class="btn btn-forest w-100 mt-3" href="/checkout.html">Proceed to Checkout</a>
+      <a class="btn btn-forest w-100 mt-3" href="/checkout.html" id="fxProceedCheckout">Proceed to Checkout</a>
       <button class="btn btn-ghost w-100 mt-1" id="fxCartClear">Clear cart</button>
     `;
 
@@ -212,6 +212,15 @@
       });
       el.querySelector('[data-act="rm"]').addEventListener('click', () => {
         remove(id); renderDrawer();
+      });
+    });
+
+    foot.querySelector('#fxProceedCheckout')?.addEventListener('click', (e) => {
+      if (!window.VestaAuth) return;
+      e.preventDefault();
+      VestaAuth.whoami().then(() => {
+        if (VestaAuth.getUser()) location.href = '/checkout.html';
+        else VestaAuth.requireLogin('/checkout.html');
       });
     });
 

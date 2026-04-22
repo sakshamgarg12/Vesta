@@ -55,9 +55,7 @@
   function wireTrackButton(order) {
     const btn = document.getElementById('btn-track-order');
     if (!btn || !order?.order_number) return;
-    const email = order.customer?.email || order.customer_email || '';
     const q = new URLSearchParams({ order: order.order_number });
-    if (email) q.set('contact', email);
     btn.href = `/track.html?${q.toString()}`;
   }
 
@@ -71,10 +69,8 @@
   async function renderStatusSnapshot(order) {
     const el = document.getElementById('statusSnapshot');
     if (!el || !order?.order_number) return;
-    const email = order.customer?.email || order.customer_email;
-    if (!email) return; // tracking endpoint needs a contact
     try {
-      const { tracking } = await VestaAPI.trackOrder(order.order_number, email);
+      const { tracking } = await VestaAPI.trackOrder(order.order_number);
       const eta = tracking.eta_days;
       let etaLine = '';
       if (tracking.current_status === 'delivered') {

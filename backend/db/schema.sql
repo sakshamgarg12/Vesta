@@ -13,7 +13,25 @@ USE vesta_db;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS customer_queries;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS products;
+
+-- ---------- Users (Google Sign-In) ----------
+CREATE TABLE users (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  google_sub      VARCHAR(64) NOT NULL COMMENT 'Google account subject (stable ID)',
+  email           VARCHAR(255) NOT NULL,
+  email_verified  TINYINT(1) NOT NULL DEFAULT 0,
+  name            VARCHAR(255) DEFAULT NULL,
+  picture_url     VARCHAR(500) DEFAULT NULL,
+  role            ENUM('customer','admin') NOT NULL DEFAULT 'customer',
+  last_login_at   DATETIME DEFAULT NULL,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_users_google_sub (google_sub),
+  UNIQUE KEY uk_users_email      (email),
+  INDEX idx_users_role (role)
+) ENGINE=InnoDB;
 
 CREATE TABLE products (
   id              INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,6 +67,7 @@ CREATE TABLE orders (
   customer_email       VARCHAR(150) NOT NULL,
   customer_phone       VARCHAR(25) NOT NULL,
   customer_alt_phone   VARCHAR(25) DEFAULT NULL,
+  user_id              INT DEFAULT NULL COMMENT 'FK-ish link to users.id. Orders placed before Google Sign-In rollout are NULL.',
   shipping_address     VARCHAR(500) NOT NULL,
   shipping_flat        VARCHAR(120) DEFAULT NULL,
   shipping_building    VARCHAR(200) DEFAULT NULL,
@@ -86,7 +105,8 @@ CREATE TABLE orders (
   updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_email (customer_email),
   INDEX idx_status (order_status),
-  INDEX idx_created (created_at)
+  INDEX idx_created (created_at),
+  INDEX idx_orders_user (user_id)
 ) ENGINE=InnoDB;
 
 -- ---------- Order Items ----------

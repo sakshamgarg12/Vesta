@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin · Vesta</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="admin-body">
+
+<!-- ============== LOGIN / ACCESS ============== -->
+<section id="adminLoginGate" class="admin-login" hidden>
+  <div class="admin-login__card">
+    <div class="admin-login__brand">Ves<span>ta</span> <em>Admin</em></div>
+    <h1 class="admin-login__title" id="adminGateTitle">Sign in to continue</h1>
+    <p class="admin-login__sub" id="adminGateSub">
+      Use the same <strong>Google</strong> account that is allow-listed for admin access
+      in <code>backend/.env</code> → <code>ADMIN_EMAILS</code>. The address must
+      include <code>admin</code> in the name (e.g. <code>vesta.admin@gmail.com</code>).
+    </p>
+    <div id="adminGoogleMount"></div>
+    <div id="adminLoginErr" class="admin-login__err" hidden></div>
+    <p class="admin-login__hint">
+      <a href="/" class="text-decoration-none">← Back to the store</a>
+    </p>
+  </div>
+</section>
+
+<!-- Signed in as a customer, but not an admin -->
+<section id="adminDenied" class="admin-login" hidden>
+  <div class="admin-login__card">
+    <div class="admin-login__brand">Ves<span>ta</span> <em>Admin</em></div>
+    <h1 class="admin-login__title">Access restricted</h1>
+    <p class="admin-login__sub">
+      You're signed in as <strong id="adminDeniedEmail">—</strong>, but this account is
+      not authorised for the admin dashboard. If you are the store owner, add your Gmail
+      to <code>ADMIN_EMAILS</code> in the server <code>.env</code> (and ensure the address
+      contains the word <code>admin</code>).
+    </p>
+    <a class="btn btn-primary w-100" href="/">Back to the store</a>
+    <button type="button" class="btn btn-outline-secondary w-100 mt-2" id="adminDeniedSignOut">Sign out &amp; use another account</button>
+  </div>
+</section>
+
+<!-- ============== DASHBOARD ============== -->
+<div id="adminDashboard" hidden>
+  <header class="admin-topbar">
+    <div class="admin-topbar__inner">
+      <a class="admin-brand" href="/admin.html">Ves<span>ta</span> <em>Admin</em></a>
+      <div class="admin-topbar__actions">
+        <a class="admin-btn admin-btn--ghost" href="/" target="_blank" rel="noopener">View store ↗</a>
+        <button id="adminRefreshBtn" class="admin-btn admin-btn--ghost" type="button" title="Refresh">↻ Refresh</button>
+        <button id="adminLogoutBtn" class="admin-btn admin-btn--ghost" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main container">
+
+    <!-- KPIs -->
+    <section class="admin-kpis">
+      <div class="admin-kpi"  data-kpi="orders_today">
+        <div class="admin-kpi__label">Orders today</div>
+        <div class="admin-kpi__value" data-val>—</div>
+      </div>
+      <div class="admin-kpi" data-kpi="orders_week">
+        <div class="admin-kpi__label">Last 7 days</div>
+        <div class="admin-kpi__value" data-val>—</div>
+      </div>
+      <div class="admin-kpi admin-kpi--warn" data-kpi="needs_confirmation">
+        <div class="admin-kpi__label">Need confirmation</div>
+        <div class="admin-kpi__value" data-val>—</div>
+        <div class="admin-kpi__sub">Status is "Placed"</div>
+      </div>
+      <div class="admin-kpi admin-kpi--warn" data-kpi="needs_payment_check">
+        <div class="admin-kpi__label">Awaiting payment check</div>
+        <div class="admin-kpi__value" data-val>—</div>
+        <div class="admin-kpi__sub">Online pay, marked pending</div>
+      </div>
+      <div class="admin-kpi" data-kpi="cod_in_flight">
+        <div class="admin-kpi__label">COD in flight</div>
+        <div class="admin-kpi__value" data-val>—</div>
+        <div class="admin-kpi__sub">Collect on delivery</div>
+      </div>
+      <div class="admin-kpi admin-kpi--accent" data-kpi="gross_revenue">
+        <div class="admin-kpi__label">Gross revenue</div>
+        <div class="admin-kpi__value" data-val>—</div>
+        <div class="admin-kpi__sub">Lifetime total</div>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="admin-filters">
+      <div class="admin-filters__row">
+        <div class="admin-filters__search">
+          <input id="adminSearch" type="search" class="form-control" placeholder="Search by order #, name, email or phone..." />
+        </div>
+        <select id="adminStatusFilter" class="form-select admin-filters__sel">
+          <option value="">Order status: All</option>
+          <option value="placed">Placed</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="packed">Packed</option>
+          <option value="shipped">Shipped</option>
+          <option value="out_for_delivery">Out for delivery</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select id="adminPaymentFilter" class="form-select admin-filters__sel">
+          <option value="">Payment: All</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
+        </select>
+        <select id="adminMethodFilter" class="form-select admin-filters__sel">
+          <option value="">Method: All</option>
+          <option value="cod">Cash on Delivery</option>
+          <option value="upi">UPI</option>
+          <option value="card">Card</option>
+          <option value="netbanking">Netbanking</option>
+        </select>
+        <button id="adminClearFilters" class="admin-btn admin-btn--ghost" type="button">Clear</button>
+      </div>
+    </section>
+
+    <!-- Orders table -->
+    <section class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Customer</th>
+            <th>Delivery</th>
+            <th class="admin-col-num">Items</th>
+            <th class="admin-col-num">Total</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th class="admin-col-num">Placed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="adminOrdersBody">
+          <tr><td colspan="9" class="admin-loading">Loading orders...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="admin-pager" id="adminPager" hidden>
+        <button class="admin-btn admin-btn--ghost" data-page-act="prev">← Prev</button>
+        <span id="adminPagerLabel" class="admin-pager__label"></span>
+        <button class="admin-btn admin-btn--ghost" data-page-act="next">Next →</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============== DETAIL DRAWER ============== -->
+<aside id="adminDrawer" class="admin-drawer" hidden aria-hidden="true" role="dialog" aria-label="Order detail">
+  <div class="admin-drawer__scrim" data-drawer-close></div>
+  <div class="admin-drawer__panel" role="document">
+    <div class="admin-drawer__head">
+      <div>
+        <div class="admin-drawer__eyebrow" data-drawer-order-eyebrow>Order</div>
+        <h2 class="admin-drawer__title" data-drawer-order-title>—</h2>
+      </div>
+      <button class="admin-drawer__close" type="button" data-drawer-close aria-label="Close">×</button>
+    </div>
+
+    <div class="admin-drawer__body" id="adminDrawerBody">
+      <div class="admin-loading">Loading...</div>
+    </div>
+  </div>
+</aside>
+
+<script src="/js/api.js?v=vesta1"></script>
+<script src="/js/auth.js?v=vesta1"></script>
+<script src="/js/admin.js?v=vesta1" defer></script>
+</body>
+</html>

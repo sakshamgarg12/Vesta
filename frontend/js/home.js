@@ -54,5 +54,39 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', loadFeatured);
+  /**
+   * Hydrate the magazine-layout category tiles with live counts + starting
+   * prices. Each tile has  <span data-meta="count">  and  <span data-meta="price">.
+   * If the API fails we just leave the placeholder dashes — the tiles stay usable.
+   */
+  async function hydrateCategoryTiles() {
+    const wrap = document.getElementById('catMagazine');
+    if (!wrap) return;
+    try {
+      const { categories } = await VestaAPI.getCategories();
+      const byCat = new Map((categories || []).map(c => [c.category, c]));
+
+      wrap.querySelectorAll('.cat-card[data-cat]').forEach(tile => {
+        const cat = tile.getAttribute('data-cat');
+        const info = byCat.get(cat);
+        const countEl = tile.querySelector('[data-meta="count"]');
+        const priceEl = tile.querySelector('[data-meta="price"]');
+        if (info && countEl) {
+          countEl.textContent = `${info.count} ${info.count === 1 ? 'piece' : 'pieces'}`;
+        } else if (countEl) {
+          countEl.textContent = 'Coming soon';
+        }
+        if (priceEl && info && info.min_price != null) {
+          priceEl.textContent = `From ${VestaCart.formatINR(info.min_price)}`;
+        }
+      });
+    } catch (err) {
+      console.warn('[home] category hydrate failed:', err.message);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadFeatured();
+    hydrateCategoryTiles();
+  });
 })();

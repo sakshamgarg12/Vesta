@@ -887,7 +887,20 @@
   }
 
   // ---------- Wire-up ----------
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (window.VestaAuth) {
+      try { await VestaAuth.whoami(); } catch (_) {}
+      if (!VestaAuth.getUser()) {
+        VestaAuth.requireLogin('/checkout.html');
+        return;
+      }
+      const u = VestaAuth.getUser();
+      const ne = document.querySelector('[name="email"]');
+      const nn = document.querySelector('[name="name"]');
+      if (u && u.email && ne && !String(ne.value || '').trim()) ne.value = u.email;
+      if (u && u.name && nn && !String(nn.value || '').trim()) nn.value = u.name;
+    }
+
     if (!ensureCartNotEmpty()) return;
 
     // Min delivery date = today + 3 days

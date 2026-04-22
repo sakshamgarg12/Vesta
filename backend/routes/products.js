@@ -47,18 +47,38 @@ router.get('/', async (req, res, next) => {
 
 /**
  * GET /api/products/categories
- *   Returns the list of categories with product counts.
+ *   Returns each category with product count, lowest price and a hero image
+ *   (from a featured item when available, otherwise the first product).
  */
 router.get('/categories', async (_req, res, next) => {
   try {
     const [rows] = await pool.query(`
-      SELECT category, COUNT(*) AS count
-      FROM products
-      WHERE is_active = 1
-      GROUP BY category
-      ORDER BY category
+      SELECT c.category,
+             c.count,
+             c.min_price,
+             (
+               SELECT p.image_url
+                 FROM products p
+                WHERE p.is_active = 1 AND p.category = c.category
+                ORDER BY p.is_featured DESC, p.id ASC
+                LIMIT 1
+             ) AS hero_image
+        FROM (
+          SELECT category, COUNT(*) AS count, MIN(price) AS min_price
+            FROM products
+           WHERE is_active = 1
+           GROUP BY category
+        ) c
+       ORDER BY c.category
     `);
-    res.json({ categories: rows });
+    res.json({
+      categories: rows.map(r => ({
+        category: r.category,
+        count: Number(r.count),
+        min_price: r.min_price != null ? Number(r.min_price) : null,
+        hero_image: r.hero_image || null,
+      })),
+    });
   } catch (err) { next(err); }
 });
 

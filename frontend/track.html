@@ -18,7 +18,7 @@
   <div class="container">
     <div class="breadcrumb-link"><a href="/">Home</a> / <span>Track Order</span></div>
     <h1>Track your order</h1>
-    <p class="text-muted-soft mb-0">Enter your order number and the email or phone you used at checkout.</p>
+    <p class="text-muted-soft mb-0">Sign in with Google, then enter your order number. We only show orders placed with your account.</p>
   </div>
 </header>
 
@@ -37,11 +37,6 @@
               <label class="form-label">Order number</label>
               <input class="form-control" type="text" name="order" placeholder="FX-20260422-123456" required autocomplete="off" spellcheck="false" />
               <small class="text-muted-soft">Format: <code>FX-YYYYMMDD-123456</code></small>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Email or phone</label>
-              <input class="form-control" type="text" name="contact" placeholder="you@example.com or last 4 digits of phone" required autocomplete="off" />
-              <small class="text-muted-soft">Just the last 4 digits of your phone is fine — we only need enough to verify it's you.</small>
             </div>
             <button class="btn btn-forest w-100" id="trackBtn" type="submit">Track Order →</button>
           </form>
@@ -74,6 +69,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/api.js?v=vesta1"></script>
+<script src="/js/auth.js?v=vesta1"></script>
 <script src="/js/cart.js?v=vesta1"></script>
 <script src="/js/layout.js?v=vesta1"></script>
 <script src="/js/track.js?v=vesta1"></script>

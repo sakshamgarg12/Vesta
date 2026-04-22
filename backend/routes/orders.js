@@ -4,6 +4,7 @@ const { pool } = require('../db');
 const { computeTotals, applyCoupon } = require('../utils/pricing');
 const { sendOrderEmails, sendStatusUpdateEmail } = require('../utils/mailer');
 const { buildInvoicePDF } = require('../utils/invoice');
+const { requireLogin, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -30,32 +31,6 @@ const STATUS_TIMESTAMP_COL = {
   out_for_delivery: 'out_for_delivery_at',
   delivered:        'delivered_at',
 };
-
-/** Normalize user-provided contact for a fuzzy match (digits-only for phone, lower-case for email). */
-function normalizeContact(raw) {
-  const s = String(raw || '').trim();
-  if (!s) return { kind: 'empty', value: '' };
-  if (s.includes('@')) return { kind: 'email', value: s.toLowerCase() };
-  return { kind: 'phone', value: s.replace(/\D/g, '') };
-}
-
-/** Check whether `contact` matches either the customer's email or phone/alt-phone. */
-function contactMatches(order, contact) {
-  const c = normalizeContact(contact);
-  if (c.kind === 'empty') return false;
-
-  if (c.kind === 'email') {
-    return String(order.customer_email || '').toLowerCase() === c.value;
-  }
-  // Phone match: accept full number OR last 4 digits (customer-friendly).
-  const storedMain = String(order.customer_phone || '').replace(/\D/g, '');
-  const storedAlt  = String(order.customer_alt_phone || '').replace(/\D/g, '');
-  if (!c.value) return false;
-  if (c.value.length === 4) {
-    return storedMain.endsWith(c.value) || (storedAlt && storedAlt.endsWith(c.value));
-  }
-  return storedMain.endsWith(c.value) || (storedAlt && storedAlt.endsWith(c.value));
-}
 
 /** Build a customer-safe tracking payload from a raw `orders` row. */
 function buildTrackingView(order) {
@@ -250,10 +225,17 @@ router.post('/coupons/validate', (req, res) => {
  *   }
  *   Creates the order and returns the saved order + receipt.
  */
-router.post('/checkout', async (req, res, next) => {
+router.post('/checkout', requireLogin, async (req, res, next) => {
   const conn = await pool.getConnection();
   try {
     const { customer = {}, shipping = {}, delivery = {}, payment = {}, coupon_code, items = [], notes = '' } = req.body;
+
+    // The buyer is always the signed-in user. We keep a frozen snapshot of
+    // their name/email/phone in the order row so it stays stable even if the
+    // user later edits their profile (or is deleted).
+    const buyerId = req.user.id;
+    if (!customer.email && req.user.email) customer.email = req.user.email;
+    if (!customer.name  && req.user.name)  customer.name  = req.user.name;
 
     // Back-compat: if client sent only a single `address` string but no structured parts,
     // use it as the street and leave the rest blank.
@@ -383,7 +365,7 @@ router.post('/checkout', async (req, res, next) => {
     const [orderRes] = await conn.query(
       `INSERT INTO orders
         (order_number,
-         customer_name, customer_email, customer_phone, customer_alt_phone,
+         customer_name, customer_email, customer_phone, customer_alt_phone, user_id,
          shipping_address, shipping_flat, shipping_building, shipping_street,
          shipping_landmark, shipping_locality, shipping_address_type,
          shipping_city, shipping_state, shipping_pincode,
@@ -391,10 +373,10 @@ router.post('/checkout', async (req, res, next) => {
          delivery_date, delivery_slot, payment_method, payment_status, payment_details,
          subtotal, discount_code, discount_amount, shipping_fee, gst_amount,
          total, order_status, notes)
-       VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?, ?,?,?, ?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?,?)`,
+       VALUES (?,?,?,?,?,?, ?,?,?,?,?, ?,?, ?,?,?, ?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?,?)`,
       [
         orderNumber,
-        customer.name, customer.email, customer.phone, altRaw || null,
+        customer.name, customer.email, customer.phone, altRaw || null, buyerId,
         composedAddress, shippingFlat || null, shippingBuilding || null, shippingStreet || null,
         shippingLandmark || null, shippingLocality || null, addressType,
         shipping.city, shipping.state, String(shipping.pincode),
@@ -541,10 +523,20 @@ router.get('/orders/:orderNumber/invoice.pdf', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/** True if this order was placed by the signed-in account (user_id link or same email). */
+function orderBelongsToUser(order, user) {
+  if (!user || !order) return false;
+  if (order.user_id != null && Number(order.user_id) === Number(user.id)) return true;
+  const ce = String(order.customer_email || '').trim().toLowerCase();
+  const ue = String(user.email || '').trim().toLowerCase();
+  return Boolean(ce && ue && ce === ue);
+}
+
 /* --------------------------------------------------------------------------
- * PUBLIC:  GET /api/track?order=FX-...&contact=<email|phone|last4>
- *   Customer-friendly tracking lookup.
- *   Rate-limited so the order-number space can't be enumerated.
+ * GET /api/track?order=FX-...
+ *   Signed-in customers only. Verifies the order belongs to the session user
+ *   (placed while logged in via user_id, or same email as checkout for legacy rows).
+ *   Rate-limited so the order-number space can't be hammered.
  * -------------------------------------------------------------------------- */
 const trackLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
@@ -554,15 +546,11 @@ const trackLimiter = rateLimit({
   message: { error: 'Too many tracking requests — please try again in a few minutes.' },
 });
 
-router.get('/track', trackLimiter, async (req, res, next) => {
+router.get('/track', trackLimiter, requireLogin, async (req, res, next) => {
   try {
     const orderNumber = String(req.query.order || '').trim();
-    const contact = String(req.query.contact || '').trim();
     if (!orderNumber) {
       return res.status(400).json({ error: 'Please enter your order number.' });
-    }
-    if (!contact) {
-      return res.status(400).json({ error: 'Please enter your email or phone to verify.' });
     }
     if (!/^FX-\d{8}-\d{6}$/.test(orderNumber)) {
       return res.status(400).json({ error: 'That order number doesn\'t look right — it should be like FX-20260422-123456.' });
@@ -572,10 +560,9 @@ router.get('/track', trackLimiter, async (req, res, next) => {
       'SELECT * FROM orders WHERE order_number = ? LIMIT 1',
       [orderNumber],
     );
-    // Always return the same error for "not found" vs "contact mismatch" so
-    // an attacker can't enumerate which order numbers exist.
-    if (rows.length === 0 || !contactMatches(rows[0], contact)) {
-      return res.status(404).json({ error: 'No order matches that combination. Please double-check your order number and the email / phone you used.' });
+    // Same opaque 404 for "not found" vs "not yours" — no enumeration.
+    if (rows.length === 0 || !orderBelongsToUser(rows[0], req.user)) {
+      return res.status(404).json({ error: 'No order matches that number for your account. Check the order ID or sign in with the Google account you used at checkout.' });
     }
 
     const order = rows[0];
@@ -590,29 +577,250 @@ router.get('/track', trackLimiter, async (req, res, next) => {
 });
 
 /* --------------------------------------------------------------------------
- * ADMIN:  PATCH /api/admin/orders/:orderNumber/status
- *   Advance an order through its lifecycle.
- *   Protected by the ADMIN_TOKEN env variable (sent as "x-admin-token"
- *   header or "?token=" query param).
+ * ADMIN routes
+ *   All /api/admin/* endpoints are gated by `requireAdmin` from
+ *   backend/middleware/auth.js, which checks the session cookie and asserts:
+ *     (a) the user is signed in with Google,
+ *     (b) their email appears in ADMIN_EMAILS, AND
+ *     (c) the email contains the substring "admin".
+ *
+ *   There is no separate admin-token login — the old /api/admin/login was
+ *   removed when we moved to Google Sign-In for the whole site.
+ * -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+ * ADMIN:  GET /api/admin/stats
+ *   Compact KPI block for the admin dashboard header.
+ * -------------------------------------------------------------------------- */
+router.get('/admin/stats', requireAdmin, async (_req, res, next) => {
+  try {
+    const [[totals]] = await pool.query(`
+      SELECT
+        COUNT(*)                                                   AS total_orders,
+        COALESCE(SUM(total), 0)                                    AS gross_revenue,
+        SUM(CASE WHEN DATE(created_at) = CURDATE()         THEN 1 ELSE 0 END) AS orders_today,
+        SUM(CASE WHEN created_at >= (NOW() - INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS orders_week,
+        SUM(CASE WHEN order_status   = 'placed'            THEN 1 ELSE 0 END) AS needs_confirmation,
+        SUM(CASE WHEN payment_status = 'pending' AND payment_method <> 'cod' THEN 1 ELSE 0 END) AS needs_payment_check,
+        SUM(CASE WHEN payment_method = 'cod' AND order_status NOT IN ('delivered','cancelled') THEN 1 ELSE 0 END) AS cod_in_flight
+      FROM orders
+    `);
+
+    const [statusBreakdown] = await pool.query(`
+      SELECT order_status AS status, COUNT(*) AS c
+        FROM orders
+       GROUP BY order_status
+    `);
+    const [paymentBreakdown] = await pool.query(`
+      SELECT payment_status AS status, COUNT(*) AS c
+        FROM orders
+       GROUP BY payment_status
+    `);
+
+    res.json({
+      total_orders:        Number(totals.total_orders || 0),
+      gross_revenue:       Number(totals.gross_revenue || 0),
+      orders_today:        Number(totals.orders_today || 0),
+      orders_week:         Number(totals.orders_week || 0),
+      needs_confirmation:  Number(totals.needs_confirmation || 0),
+      needs_payment_check: Number(totals.needs_payment_check || 0),
+      cod_in_flight:       Number(totals.cod_in_flight || 0),
+      by_status:  Object.fromEntries(statusBreakdown.map(r => [r.status, Number(r.c)])),
+      by_payment: Object.fromEntries(paymentBreakdown.map(r => [r.status, Number(r.c)])),
+    });
+  } catch (err) { next(err); }
+});
+
+/* --------------------------------------------------------------------------
+ * ADMIN:  GET /api/admin/orders
+ *   List orders with optional filters + simple pagination.
+ *
+ *   Query:
+ *     status=placed|confirmed|...|cancelled   (optional)
+ *     payment_status=pending|paid|failed|refunded (optional)
+ *     payment_method=cod|upi|card|netbanking  (optional)
+ *     search=<partial order #, email, phone, or customer name> (optional)
+ *     page=1  limit=25   (limit capped at 100)
+ * -------------------------------------------------------------------------- */
+router.get('/admin/orders', requireAdmin, async (req, res, next) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const offset = (page - 1) * limit;
+
+    const clauses = [];
+    const values  = [];
+
+    const ALLOWED_STATUS = new Set(STATUS_STAGES.concat(['cancelled']));
+    if (req.query.status && ALLOWED_STATUS.has(req.query.status)) {
+      clauses.push('order_status = ?');
+      values.push(req.query.status);
+    }
+    const ALLOWED_PAY_STATUS = new Set(['pending', 'paid', 'failed', 'refunded']);
+    if (req.query.payment_status && ALLOWED_PAY_STATUS.has(req.query.payment_status)) {
+      clauses.push('payment_status = ?');
+      values.push(req.query.payment_status);
+    }
+    const ALLOWED_PAY_METHOD = new Set(['cod', 'upi', 'card', 'netbanking']);
+    if (req.query.payment_method && ALLOWED_PAY_METHOD.has(req.query.payment_method)) {
+      clauses.push('payment_method = ?');
+      values.push(req.query.payment_method);
+    }
+
+    const search = String(req.query.search || '').trim();
+    if (search) {
+      const like = `%${search}%`;
+      clauses.push('(order_number LIKE ? OR customer_email LIKE ? OR customer_phone LIKE ? OR customer_name LIKE ?)');
+      values.push(like, like, like, like);
+    }
+
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+
+    const [[{ total }]] = await pool.query(
+      `SELECT COUNT(*) AS total FROM orders ${where}`,
+      values,
+    );
+
+    const [rows] = await pool.query(
+      `SELECT
+         id, order_number, customer_name, customer_email, customer_phone,
+         shipping_city, shipping_pincode,
+         delivery_date, delivery_slot,
+         payment_method, payment_status,
+         subtotal, discount_amount, shipping_fee, gst_amount, total,
+         order_status, tracking_number, courier_name,
+         created_at,
+         confirmed_at, packed_at, shipped_at, out_for_delivery_at, delivered_at
+         FROM orders
+         ${where}
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`,
+      [...values, limit, offset],
+    );
+
+    // Attach item counts (one small extra query — fine for admin traffic).
+    if (rows.length) {
+      const ids = rows.map(r => r.id);
+      const [counts] = await pool.query(
+        `SELECT order_id, COUNT(*) AS c, SUM(quantity) AS q
+           FROM order_items
+          WHERE order_id IN (${ids.map(() => '?').join(',')})
+          GROUP BY order_id`,
+        ids,
+      );
+      const byId = new Map(counts.map(r => [r.order_id, r]));
+      rows.forEach(r => {
+        const cc = byId.get(r.id);
+        r.items_count = cc ? Number(cc.c) : 0;
+        r.items_qty   = cc ? Number(cc.q) : 0;
+      });
+    }
+
+    res.json({
+      orders: rows,
+      page,
+      limit,
+      total: Number(total),
+      pages: Math.max(1, Math.ceil(Number(total) / limit)),
+    });
+  } catch (err) { next(err); }
+});
+
+/* --------------------------------------------------------------------------
+ * ADMIN:  GET /api/admin/orders/:orderNumber
+ *   Full order detail (customer + shipping + items + payment details).
+ * -------------------------------------------------------------------------- */
+router.get('/admin/orders/:orderNumber', requireAdmin, async (req, res, next) => {
+  try {
+    const [orders] = await pool.query(
+      'SELECT * FROM orders WHERE order_number = ?',
+      [req.params.orderNumber],
+    );
+    if (orders.length === 0) return res.status(404).json({ error: 'Order not found.' });
+
+    const order = orders[0];
+    if (order.payment_details && typeof order.payment_details === 'string') {
+      try { order.payment_details = JSON.parse(order.payment_details); }
+      catch (_) { /* leave as-is */ }
+    }
+
+    const [items] = await pool.query(
+      'SELECT * FROM order_items WHERE order_id = ?',
+      [order.id],
+    );
+
+    res.json({ order, items, tracking: buildTrackingView({ ...order, items_count: items.length }) });
+  } catch (err) { next(err); }
+});
+
+/* --------------------------------------------------------------------------
+ * ADMIN:  PATCH /api/admin/orders/:orderNumber/payment
+ *   Update the payment status.  Used when the owner manually verifies a UPI
+ *   transfer, marks a card payment as failed/refunded, etc.
  *
  *   Body: {
- *     status: "confirmed" | "packed" | "shipped" | "out_for_delivery" | "delivered" | "cancelled",
- *     tracking_number?: string,
- *     courier_name?: string,
- *     notify?: boolean   // default true — emails the customer if mail is configured
+ *     payment_status: "pending" | "paid" | "failed" | "refunded",
+ *     note?: string                 // appended to order notes for audit trail
  *   }
  * -------------------------------------------------------------------------- */
-function requireAdmin(req, res, next) {
-  const expected = (process.env.ADMIN_TOKEN || '').trim();
-  if (!expected) {
-    return res.status(503).json({ error: 'Admin actions are disabled — ADMIN_TOKEN is not set on the server.' });
+router.patch('/admin/orders/:orderNumber/payment', requireAdmin, async (req, res, next) => {
+  const conn = await pool.getConnection();
+  try {
+    const { payment_status, note } = req.body || {};
+    const allowed = ['pending', 'paid', 'failed', 'refunded'];
+    if (!allowed.includes(payment_status)) {
+      return res.status(400).json({ error: `Invalid payment_status. Must be one of: ${allowed.join(', ')}` });
+    }
+
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT * FROM orders WHERE order_number = ? FOR UPDATE',
+      [req.params.orderNumber],
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    const order = rows[0];
+
+    const setParts = ['payment_status = ?'];
+    const setVals  = [payment_status];
+
+    if (typeof note === 'string' && note.trim()) {
+      // Append a timestamped audit line to `notes` so the owner can reconstruct
+      // why this payment was flipped to paid / failed / refunded.
+      const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
+      const line  = `[${stamp}] payment → ${payment_status}: ${note.trim().slice(0, 400)}`;
+      const combined = order.notes ? `${order.notes}\n${line}` : line;
+      setParts.push('notes = ?');
+      setVals.push(combined);
+    }
+
+    setVals.push(order.id);
+    await conn.query(`UPDATE orders SET ${setParts.join(', ')} WHERE id = ?`, setVals);
+    await conn.commit();
+
+    const [[updated]] = await conn.query(
+      'SELECT * FROM orders WHERE id = ?',
+      [order.id],
+    );
+    if (updated.payment_details && typeof updated.payment_details === 'string') {
+      try { updated.payment_details = JSON.parse(updated.payment_details); }
+      catch (_) { /* leave */ }
+    }
+
+    res.json({
+      success: true,
+      message: `Payment for ${updated.order_number} → ${payment_status}`,
+      order: updated,
+    });
+  } catch (err) {
+    try { await conn.rollback(); } catch (_) {}
+    next(err);
+  } finally {
+    conn.release();
   }
-  const got = String(req.header('x-admin-token') || req.query.token || '').trim();
-  if (got !== expected) {
-    return res.status(401).json({ error: 'Unauthorized — invalid or missing admin token.' });
-  }
-  next();
-}
+});
 
 router.patch('/admin/orders/:orderNumber/status', requireAdmin, async (req, res, next) => {
   const conn = await pool.getConnection();
